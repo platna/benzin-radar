@@ -312,7 +312,7 @@ export default function App() {
       {/* Footer Info */}
       <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-[11px] text-slate-400">
         <p className="max-w-md mx-auto">
-          Бензин Радар НН · Оперативный мониторинг наличия АИ-95, очередей и лимитов на АЗС Нижнего Новгорода
+          Бензин Радар НН v2.0 · Оперативный мониторинг наличия АИ-95, очередей и лимитов на АЗС Нижнего Новгорода
         </p>
       </footer>
     </div>
