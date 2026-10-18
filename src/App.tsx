@@ -26,7 +26,7 @@ export default function App() {
   const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('только что');
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
-  // Fetch function with proxy and direct fallback
+  // Fetch function with multiple CORS proxies, Netlify proxy, and local caching
   const loadStations = useCallback(async (showIndicator = true) => {
     if (showIndicator) setIsRefreshing(true);
     let fetched = false;
@@ -44,26 +44,26 @@ export default function App() {
       }
     };
 
-    // 1. Fetch from our full-stack backend endpoint (/api/stations) which proxies gdebenz.ru
-    try {
-      const res = await fetch('/api/stations', { signal: AbortSignal.timeout(6000) });
-      if (res.ok) {
-        const json = await res.json();
-        const list = Array.isArray(json) ? json : json.stations;
-        if (Array.isArray(list) && list.length > 0) {
-          setStations(list);
-          setIsLiveApi(json.source === 'live' || json.source === 'cache');
-          fetched = true;
-        }
-      }
-    } catch (e) {
-      console.warn('Backend proxy fetch failed:', e);
-    }
+    // Sequential candidate endpoints to bypass CORS on Netlify and other static hosts:
+    // 1. /api/stations (handled by server.ts in Node dev, and by _redirects / netlify.toml on Netlify)
+    // 2. https://corsproxy.io/?url=... (explicitly specified by user)
+    // 3. Alternate public CORS proxy
+    // 4. Direct fetch to gdebenz.ru
+    const candidateEndpoints = [
+      '/api/stations',
+      `https://corsproxy.io/?url=${encodeURIComponent(GDEBENZ_URL)}`,
+      `https://corsproxy.io/?url=https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(GDEBENZ_URL)}`,
+      GDEBENZ_URL
+    ];
 
-    // 2. Direct fallback attempt to gdebenz.ru
-    if (!fetched) {
+    for (const endpoint of candidateEndpoints) {
+      if (fetched) break;
       try {
-        const res = await fetch(GDEBENZ_URL, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(4000) });
+        const res = await fetch(endpoint, {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(5000)
+        });
         if (res.ok) {
           const json = await res.json();
           const list = Array.isArray(json) ? json : json.stations;
@@ -71,14 +71,40 @@ export default function App() {
             setStations(list);
             setIsLiveApi(true);
             fetched = true;
+            try {
+              localStorage.setItem('cached_live_stations', JSON.stringify(list));
+              localStorage.setItem('cached_live_time', `МСК ${getNowMsk()}`);
+            } catch {
+              // Ignore localStorage quota errors
+            }
+            break;
           }
         }
       } catch {
-        // Direct failed, will use authentic snapshot
+        // Try next candidate endpoint
       }
     }
 
-    // 3. Bundled authentic snapshot fallback
+    // If all live network fetches failed, recover from recent localStorage cache
+    if (!fetched) {
+      try {
+        const cached = localStorage.getItem('cached_live_stations');
+        const cachedTime = localStorage.getItem('cached_live_time');
+        if (cached) {
+          const list = JSON.parse(cached);
+          if (Array.isArray(list) && list.length > 0) {
+            setStations(list);
+            setIsLiveApi(true);
+            if (cachedTime) setLastUpdatedTime(cachedTime);
+            fetched = true;
+          }
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
+    }
+
+    // Only if network and localStorage both failed on fresh device, use fallback
     if (!fetched) {
       setStations(FALLBACK_STATIONS);
       setIsLiveApi(false);
@@ -92,6 +118,22 @@ export default function App() {
 
   // Initial load
   useEffect(() => {
+    // Attempt instant render from previous localStorage session
+    try {
+      const cached = localStorage.getItem('cached_live_stations');
+      const cachedTime = localStorage.getItem('cached_live_time');
+      if (cached) {
+        const list = JSON.parse(cached);
+        if (Array.isArray(list) && list.length > 0) {
+          setStations(list);
+          setIsLiveApi(true);
+          if (cachedTime) setLastUpdatedTime(cachedTime);
+        }
+      }
+    } catch {
+      // Ignore
+    }
+
     loadStations(false);
 
     // Auto-refresh every 5 minutes (matching script cron)

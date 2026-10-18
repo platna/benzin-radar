@@ -5,6 +5,7 @@ import {
   isQueueStation,
   formatQueueTrafficLight,
   parseLimit,
+  cleanDetailFuels,
   getFreshnessText,
   getBrandInfo,
   getNavigationUrls,
@@ -29,11 +30,18 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   const queueTraffic = formatQueueTrafficLight(station.detail);
   const limit = parseLimit(station.detail);
 
-  // Automatic payment terminal signal is ONLY present when station.svc is provided
-  const hasAutoSignal = Boolean(station.svc || station.svc_only);
-  const autoTime = hasAutoSignal ? (station.last_auto_at || station.last_at) : null;
   const driverTime = station.last_driver_at || (station.svc === 'only' ? null : station.last_at);
+  const autoTime = station.last_auto_at;
   const isSvcOnly = station.svc === 'only' || station.svc_only;
+
+  // Auto signal ("Заправка работала") is shown if:
+  // 1. Station only has an automated signal (no driver mark)
+  // 2. OR autoTime is newer than driverTime (a terminal transaction occurred after the driver mark)
+  const isAutoNewer = Boolean(
+    autoTime && driverTime &&
+    new Date(autoTime.replace(' ', 'T')).getTime() - new Date(driverTime.replace(' ', 'T')).getTime() > 2 * 60 * 1000
+  );
+  const hasAutoSignal = isSvcOnly || isAutoNewer || Boolean(autoTime && !driverTime);
 
   const driverFreshness = getFreshnessText(driverTime || undefined);
   const autoFreshness = getFreshnessText(autoTime || undefined);
@@ -78,13 +86,8 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
     }
   }
 
-  const sanitizedDetail = station.detail
-    ? station.detail
-        .replace(/(\d+[.,]\d{2}\s*(?:₽|руб\.?|рублей))/gi, '')
-        .replace(/·\s*·/g, '·')
-        .replace(/^[\s·,]+|[\s·,]+$/g, '')
-        .trim() || null
-    : null;
+  // Remove queue and limit duplicates from the bottom fuel types row
+  const sanitizedDetail = cleanDetailFuels(station.detail);
 
   return (
     <article className="bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 shadow-lg transition-all duration-200">

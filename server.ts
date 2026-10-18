@@ -124,13 +124,13 @@ app.get('/api/stations', async (req, res) => {
                   st.detail = comment.detail;
                 }
 
-                // Automatic signal timestamp is only relevant if there is an automatic signal (svc)
-                if (st.svc) {
-                  st.last_auto_at = comment.updated || st.last_at;
-                  st.last_driver_at = comment.updatedSupport || null;
-                } else {
-                  st.last_auto_at = null;
-                  st.last_driver_at = comment.updatedSupport || comment.updated || st.last_at;
+                if (comment.updated) {
+                  st.last_auto_at = comment.updated;
+                }
+                if (comment.updatedSupport) {
+                  st.last_driver_at = comment.updatedSupport;
+                } else if (!st.svc) {
+                  st.last_driver_at = comment.updated || st.last_at;
                 }
                 st.last_at = st.last_driver_at || st.last_auto_at || st.last_at;
               }

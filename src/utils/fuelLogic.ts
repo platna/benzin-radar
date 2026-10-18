@@ -283,6 +283,17 @@ export function parseLimit(detail?: string): string | null {
   return limMatch ? limMatch[1].trim() : null;
 }
 
+export function cleanDetailFuels(detail?: string): string | null {
+  if (!detail) return null;
+  return detail
+    .replace(/(\d+[.,]\d{2}\s*(?:₽|руб\.?|рублей))/gi, '')
+    .replace(/(?:[·,;\-]\s*)?(?:очередь[:\s\-]*[^·;\n]+|без очереди)/gi, '')
+    .replace(/(?:[·,;\-]\s*)?лимит[:\s\-]*[^·;\n]+/gi, '')
+    .replace(/·\s*·/g, '·')
+    .replace(/^[\s·,;\-]+|[\s·,;\-]+$/g, '')
+    .trim() || null;
+}
+
 export interface BrandInfo {
   type: "lukoil" | "teboil" | "gpn" | "other";
   displayName: string;

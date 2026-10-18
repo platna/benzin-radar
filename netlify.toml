@@ -1,0 +1,20 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/api/stations"
+  to = "https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/comments/:id"
+  to = "https://gdebenz.ru/api/comments/:id"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -14,7 +14,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "Заправка не работает",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 02:29:58",
+    "last_at": "2026-10-18 02:29:58",
     "confidence_base": 0
   },
   {
@@ -29,7 +29,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:40:20",
+    "last_at": "2026-10-18 10:40:20",
     "confidence_base": 0.3729,
     "meta": {
       "f": [
@@ -51,7 +51,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "Заправка не работает",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 05:27:48",
+    "last_at": "2026-10-18 05:27:48",
     "confidence_base": 0.35
   },
   {
@@ -66,7 +66,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 06:37:01",
+    "last_at": "2026-10-18 06:37:01",
     "confidence_base": 0.35
   },
   {
@@ -81,7 +81,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "Заправка не работает",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 11:15:17",
+    "last_at": "2026-10-18 11:15:17",
     "confidence_base": 0.8323
   },
   {
@@ -96,7 +96,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 100, ДТ",
     "fuels_now": "92,95,100,ДТ",
     "confirmations": 6,
-    "last_at": "2026-10-15 10:40:46",
+    "last_at": "2026-10-18 10:40:46",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -119,7 +119,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 05:35:31",
+    "last_at": "2026-10-18 05:35:31",
     "confidence_base": 0.35
   },
   {
@@ -134,7 +134,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:26:06",
+    "last_at": "2026-10-18 10:26:06",
     "confidence_base": 0.7104
   },
   {
@@ -149,7 +149,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ · Лимит 40 л",
     "fuels_now": "92,95,ДТ",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:43:25",
+    "last_at": "2026-10-18 10:43:25",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -172,7 +172,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:10:26",
+    "last_at": "2026-10-18 10:10:26",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -197,7 +197,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 06:12:37",
+    "last_at": "2026-10-18 06:12:37",
     "confidence_base": 0.3729
   },
   {
@@ -212,7 +212,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:56:15",
+    "last_at": "2026-10-18 10:56:15",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -235,7 +235,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 4,
-    "last_at": "2026-10-15 09:12:20",
+    "last_at": "2026-10-18 09:12:20",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -257,7 +257,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:43:02",
+    "last_at": "2026-10-18 10:43:02",
     "confidence_base": 0.8323
   },
   {
@@ -272,7 +272,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:14:58",
+    "last_at": "2026-10-18 08:14:58",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -288,7 +288,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, 95+, ДТ · Лимит 40 л",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:22:17",
+    "last_at": "2026-10-18 10:22:17",
     "confidence_base": 0.8323
   },
   {
@@ -303,7 +303,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:41:29",
+    "last_at": "2026-10-18 10:41:29",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -327,7 +327,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:37:54",
+    "last_at": "2026-10-18 10:37:54",
     "confidence_base": 0.8323
   },
   {
@@ -342,7 +342,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95 · Лимит 40 л",
     "fuels_now": "92,95",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:34:11",
+    "last_at": "2026-10-18 10:34:11",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -365,7 +365,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:12:10",
+    "last_at": "2026-10-18 10:12:10",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -389,7 +389,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:10:07",
+    "last_at": "2026-10-18 10:10:07",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -411,7 +411,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:20:55",
+    "last_at": "2026-10-18 10:20:55",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -427,7 +427,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ · Лимит 40 л",
     "fuels_now": "92,95,ДТ",
     "confirmations": 6,
-    "last_at": "2026-10-15 10:29:08",
+    "last_at": "2026-10-18 10:29:08",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -450,7 +450,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, 100, ДТ",
     "fuels_now": "92,95,95+,100,ДТ",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:27:32",
+    "last_at": "2026-10-18 10:27:32",
     "confidence_base": 0.7104,
     "meta": {
       "f": [
@@ -473,7 +473,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95 · Только наличные",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 05:51:00",
+    "last_at": "2026-10-18 05:51:00",
     "confidence_base": 0.3729
   },
   {
@@ -488,7 +488,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:09:52",
+    "last_at": "2026-10-18 10:09:52",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -510,7 +510,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 09:50:59",
+    "last_at": "2026-10-18 09:50:59",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -534,7 +534,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ · Лимит 40 л",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 6,
-    "last_at": "2026-10-15 10:27:54",
+    "last_at": "2026-10-18 10:27:54",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -556,7 +556,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 07:57:29",
+    "last_at": "2026-10-18 07:57:29",
     "confidence_base": 0.7104,
     "meta": {
       "f": [
@@ -578,7 +578,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ · Лимит 30 л",
     "fuels_now": "",
     "confirmations": 5,
-    "last_at": "2026-10-15 10:15:03",
+    "last_at": "2026-10-18 10:15:03",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -600,7 +600,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 07:17:03",
+    "last_at": "2026-10-18 07:17:03",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -624,7 +624,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:39:20",
+    "last_at": "2026-10-18 10:39:20",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -647,7 +647,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 04:58:11",
+    "last_at": "2026-10-18 04:58:11",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -669,7 +669,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 04:58:28",
+    "last_at": "2026-10-18 04:58:28",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -691,7 +691,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 06:10:51",
+    "last_at": "2026-10-18 06:10:51",
     "confidence_base": 0.3729
   },
   {
@@ -706,7 +706,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:43:34",
+    "last_at": "2026-10-18 10:43:34",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -728,7 +728,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 04:12:36",
+    "last_at": "2026-10-18 04:12:36",
     "confidence_base": 0.3729,
     "meta": {
       "f": [
@@ -750,7 +750,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 6,
-    "last_at": "2026-10-15 10:38:54",
+    "last_at": "2026-10-18 10:38:54",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -773,7 +773,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, 95+, ДТ · Лимит 40 л",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 5,
-    "last_at": "2026-10-15 10:47:00",
+    "last_at": "2026-10-18 10:47:00",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -796,7 +796,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "92,ДТ",
     "confirmations": 5,
-    "last_at": "2026-10-15 10:46:15",
+    "last_at": "2026-10-18 10:46:15",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -818,7 +818,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "92,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:56:29",
+    "last_at": "2026-10-18 08:56:29",
     "confidence_base": 0.35
   },
   {
@@ -833,7 +833,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 06:11:27",
+    "last_at": "2026-10-18 06:11:27",
     "confidence_base": 0.3729
   },
   {
@@ -848,7 +848,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, ДТ",
     "fuels_now": "95,ДТ",
     "confirmations": 5,
-    "last_at": "2026-10-15 10:23:53",
+    "last_at": "2026-10-18 10:23:53",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -871,7 +871,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+",
     "fuels_now": "92,95,95+",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:40:35",
+    "last_at": "2026-10-18 10:40:35",
     "confidence_base": 0.8795,
     "meta": {
       "f": [
@@ -893,7 +893,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:43:24",
+    "last_at": "2026-10-18 10:43:24",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -916,7 +916,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, 98, ДТ",
     "fuels_now": "95,98,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:50:13",
+    "last_at": "2026-10-18 08:50:13",
     "confidence_base": 0.35
   },
   {
@@ -931,7 +931,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "ДТ",
     "fuels_now": "ДТ",
     "confirmations": 6,
-    "last_at": "2026-10-15 10:43:06",
+    "last_at": "2026-10-18 10:43:06",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -953,7 +953,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+ · Лимит 40 л",
     "fuels_now": "92,95,95+",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:42:18",
+    "last_at": "2026-10-18 10:42:18",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -977,7 +977,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ · Лимит 40 л",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:40:10",
+    "last_at": "2026-10-18 10:40:10",
     "confidence_base": 0.8795
   },
   {
@@ -992,7 +992,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:55:55",
+    "last_at": "2026-10-18 08:55:55",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1013,7 +1013,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "ДТ",
     "fuels_now": "ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:40:59",
+    "last_at": "2026-10-18 10:40:59",
     "confidence_base": 0.8795,
     "meta": {
       "f": [
@@ -1034,7 +1034,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:35:36",
+    "last_at": "2026-10-18 10:35:36",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1057,7 +1057,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, 100, ДТ",
     "fuels_now": "92,95,95+,100,ДТ",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:51:23",
+    "last_at": "2026-10-18 10:51:23",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1080,7 +1080,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ · Лимит 30 л",
     "fuels_now": "92,ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:37:28",
+    "last_at": "2026-10-18 10:37:28",
     "confidence_base": 0.7104,
     "meta": {
       "f": [
@@ -1102,7 +1102,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 09:32:52",
+    "last_at": "2026-10-18 09:32:52",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1125,7 +1125,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 07:58:13",
+    "last_at": "2026-10-18 07:58:13",
     "confidence_base": 0.3729,
     "meta": {
       "f": [
@@ -1147,7 +1147,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 05:12:07",
+    "last_at": "2026-10-18 05:12:07",
     "confidence_base": 0.35
   },
   {
@@ -1162,7 +1162,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ · Очередь до 15 мин · Лимит 40 л",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:02:51",
+    "last_at": "2026-10-18 10:02:51",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -1184,7 +1184,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:48:36",
+    "last_at": "2026-10-18 10:48:36",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -1206,7 +1206,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 09:28:04",
+    "last_at": "2026-10-18 09:28:04",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -1222,7 +1222,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 03:34:34",
+    "last_at": "2026-10-18 03:34:34",
     "confidence_base": 0.35
   },
   {
@@ -1237,7 +1237,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 04:51:26",
+    "last_at": "2026-10-18 04:51:26",
     "confidence_base": 0.3729,
     "meta": {
       "f": [
@@ -1259,7 +1259,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:46:32",
+    "last_at": "2026-10-18 10:46:32",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1282,7 +1282,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "92,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:33:24",
+    "last_at": "2026-10-18 10:33:24",
     "confidence_base": 0.35
   },
   {
@@ -1297,7 +1297,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 04:51:07",
+    "last_at": "2026-10-18 04:51:07",
     "confidence_base": 0.3729
   },
   {
@@ -1312,7 +1312,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95+",
     "fuels_now": "",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:41:26",
+    "last_at": "2026-10-18 10:41:26",
     "confidence_base": 0.8795,
     "meta": {
       "f": [
@@ -1335,7 +1335,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "92,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:42:19",
+    "last_at": "2026-10-18 10:42:19",
     "confidence_base": 0.3729
   },
   {
@@ -1350,7 +1350,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:28:22",
+    "last_at": "2026-10-18 08:28:22",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -1366,7 +1366,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 08:18:30",
+    "last_at": "2026-10-18 08:18:30",
     "confidence_base": 0.8323
   },
   {
@@ -1381,7 +1381,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:37:38",
+    "last_at": "2026-10-18 08:37:38",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1404,7 +1404,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:08:39",
+    "last_at": "2026-10-18 08:08:39",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1427,7 +1427,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 100, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:25:14",
+    "last_at": "2026-10-18 10:25:14",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -1450,7 +1450,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:10:31",
+    "last_at": "2026-10-18 08:10:31",
     "confidence_base": 0.35
   },
   {
@@ -1465,7 +1465,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:12:52",
+    "last_at": "2026-10-18 10:12:52",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1489,7 +1489,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:35:37",
+    "last_at": "2026-10-18 10:35:37",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1510,7 +1510,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:43:11",
+    "last_at": "2026-10-18 10:43:11",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1533,7 +1533,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92",
     "fuels_now": "92",
     "confirmations": 8,
-    "last_at": "2026-10-15 10:36:37",
+    "last_at": "2026-10-18 10:36:37",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1556,7 +1556,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 08:51:05",
+    "last_at": "2026-10-18 08:51:05",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1580,7 +1580,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "92,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 09:09:50",
+    "last_at": "2026-10-18 09:09:50",
     "confidence_base": 0.35
   },
   {
@@ -1595,7 +1595,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, 98, ДТ",
     "fuels_now": "",
     "confirmations": 4,
-    "last_at": "2026-10-15 10:40:51",
+    "last_at": "2026-10-18 10:40:51",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1617,7 +1617,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 02:29:15",
+    "last_at": "2026-10-18 02:29:15",
     "confidence_base": 0
   },
   {
@@ -1632,7 +1632,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+",
     "fuels_now": "92,95,95+",
     "confirmations": 4,
-    "last_at": "2026-10-15 11:08:27",
+    "last_at": "2026-10-18 11:08:27",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1655,7 +1655,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "ДТ",
     "fuels_now": "ДТ",
     "confirmations": 2,
-    "last_at": "2026-10-15 09:22:34",
+    "last_at": "2026-10-18 09:22:34",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -1677,7 +1677,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "ДТ",
     "fuels_now": "ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:42:58",
+    "last_at": "2026-10-18 10:42:58",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1700,7 +1700,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 10,
-    "last_at": "2026-10-15 11:18:59",
+    "last_at": "2026-10-18 11:18:59",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1722,7 +1722,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:40:20",
+    "last_at": "2026-10-18 10:40:20",
     "confidence_base": 0.7104,
     "meta": {
       "f": [
@@ -1744,7 +1744,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:35:56",
+    "last_at": "2026-10-18 10:35:56",
     "confidence_base": 0.7104
   },
   {
@@ -1759,7 +1759,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 06:17:32",
+    "last_at": "2026-10-18 06:17:32",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1779,7 +1779,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, 95+",
     "fuels_now": "95,95+",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:22:15",
+    "last_at": "2026-10-18 10:22:15",
     "confidence_base": 0.7104,
     "meta": {
       "f": [
@@ -1801,7 +1801,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 09:15:23",
+    "last_at": "2026-10-18 09:15:23",
     "confidence_base": 0.8323
   },
   {
@@ -1816,7 +1816,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95",
     "fuels_now": "92,95",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:45:41",
+    "last_at": "2026-10-18 10:45:41",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1839,7 +1839,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 09:13:21",
+    "last_at": "2026-10-18 09:13:21",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -1861,7 +1861,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:30:56",
+    "last_at": "2026-10-18 10:30:56",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -1877,7 +1877,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 06:21:04",
+    "last_at": "2026-10-18 06:21:04",
     "confidence_base": 0.35
   },
   {
@@ -1892,7 +1892,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 2,
-    "last_at": "2026-10-15 09:12:42",
+    "last_at": "2026-10-18 09:12:42",
     "confidence_base": 0.7104,
     "meta": {
       "f": [
@@ -1914,7 +1914,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:35:52",
+    "last_at": "2026-10-18 10:35:52",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -1930,7 +1930,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:56:15",
+    "last_at": "2026-10-18 10:56:15",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -1952,7 +1952,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 03:32:11",
+    "last_at": "2026-10-18 03:32:11",
     "confidence_base": 0.3729,
     "meta": {
       "f": [
@@ -1974,7 +1974,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:18:27",
+    "last_at": "2026-10-18 10:18:27",
     "confidence_base": 0.7507,
     "meta": {
       "f": [
@@ -1997,7 +1997,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:27:38",
+    "last_at": "2026-10-18 10:27:38",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -2019,7 +2019,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95, ДТ",
     "fuels_now": "",
     "confirmations": 3,
-    "last_at": "2026-10-15 07:34:49",
+    "last_at": "2026-10-18 07:34:49",
     "confidence_base": 0.9
   },
   {
@@ -2034,7 +2034,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 100, ДТ",
     "fuels_now": "92,95,100,ДТ",
     "confirmations": 5,
-    "last_at": "2026-10-15 11:00:48",
+    "last_at": "2026-10-18 11:00:48",
     "confidence_base": 0.9
   },
   {
@@ -2049,7 +2049,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 07:01:43",
+    "last_at": "2026-10-18 07:01:43",
     "confidence_base": 0.3729
   },
   {
@@ -2064,7 +2064,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 6,
-    "last_at": "2026-10-15 10:57:37",
+    "last_at": "2026-10-18 10:57:37",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -2087,7 +2087,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:38:57",
+    "last_at": "2026-10-18 10:38:57",
     "confidence_base": 0.8323,
     "meta": {
       "f": [
@@ -2109,7 +2109,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:29:57",
+    "last_at": "2026-10-18 10:29:57",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -2133,7 +2133,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 08:30:14",
+    "last_at": "2026-10-18 08:30:14",
     "confidence_base": 0.8323
   },
   {
@@ -2148,7 +2148,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 4,
-    "last_at": "2026-10-15 09:51:05",
+    "last_at": "2026-10-18 09:51:05",
     "confidence_base": 0.9
   },
   {
@@ -2163,7 +2163,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:42:05",
+    "last_at": "2026-10-18 10:42:05",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -2179,7 +2179,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,95+,ДТ",
     "confirmations": 7,
-    "last_at": "2026-10-15 10:16:40",
+    "last_at": "2026-10-18 10:16:40",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -2201,7 +2201,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "ДТ",
     "fuels_now": "ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:59:11",
+    "last_at": "2026-10-18 10:59:11",
     "confidence_base": 0.3729
   },
   {
@@ -2216,7 +2216,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 08:12:19",
+    "last_at": "2026-10-18 08:12:19",
     "confidence_base": 0.7104
   },
   {
@@ -2231,7 +2231,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ · Лимит 40 л",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:43:12",
+    "last_at": "2026-10-18 10:43:12",
     "confidence_base": 0.7104,
     "meta": {
       "f": [
@@ -2253,7 +2253,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:43:27",
+    "last_at": "2026-10-18 10:43:27",
     "confidence_base": 0.9
   },
   {
@@ -2268,7 +2268,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 04:23:34",
+    "last_at": "2026-10-18 04:23:34",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -2284,7 +2284,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 09:58:36",
+    "last_at": "2026-10-18 09:58:36",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -2306,7 +2306,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:22:17",
+    "last_at": "2026-10-18 10:22:17",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -2322,7 +2322,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:23:29",
+    "last_at": "2026-10-18 10:23:29",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -2345,7 +2345,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 3,
-    "last_at": "2026-10-15 10:56:14",
+    "last_at": "2026-10-18 10:56:14",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -2367,7 +2367,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "95+, ДТ · Лимит 40 л",
     "fuels_now": "95+,ДТ",
     "confirmations": 6,
-    "last_at": "2026-10-15 10:56:54",
+    "last_at": "2026-10-18 10:56:54",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -2390,7 +2390,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 03:38:33",
+    "last_at": "2026-10-18 03:38:33",
     "confidence_base": 0.3729
   },
   {
@@ -2405,7 +2405,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:39:30",
+    "last_at": "2026-10-18 10:39:30",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -2421,7 +2421,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ",
     "fuels_now": "92,95,ДТ",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:42:01",
+    "last_at": "2026-10-18 10:42:01",
     "confidence_base": 0.7104
   },
   {
@@ -2436,7 +2436,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:16:45",
+    "last_at": "2026-10-18 10:16:45",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -2460,7 +2460,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, 95, ДТ · Лимит 40 л",
     "fuels_now": "",
     "confirmations": 2,
-    "last_at": "2026-10-15 10:42:45",
+    "last_at": "2026-10-18 10:42:45",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -2483,7 +2483,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 03:38:55",
+    "last_at": "2026-10-18 03:38:55",
     "confidence_base": 0.3729
   },
   {
@@ -2498,7 +2498,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:55:12",
+    "last_at": "2026-10-18 10:55:12",
     "confidence_base": 0.35
   },
   {
@@ -2513,7 +2513,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "92, ДТ",
     "fuels_now": "92,ДТ",
     "confirmations": 1,
-    "last_at": "2026-10-15 11:05:08",
+    "last_at": "2026-10-18 11:05:08",
     "confidence_base": 0.35
   },
   {
@@ -2528,7 +2528,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:13:16",
+    "last_at": "2026-10-18 10:13:16",
     "confidence_base": 0.35,
     "svc": "only"
   },
@@ -2544,7 +2544,7 @@ export const FALLBACK_STATIONS: Station[] = [
     "detail": "",
     "fuels_now": "",
     "confirmations": 1,
-    "last_at": "2026-10-15 10:41:39",
+    "last_at": "2026-10-18 10:41:39",
     "confidence_base": 0.35,
     "svc": "only"
   }

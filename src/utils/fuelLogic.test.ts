@@ -8,6 +8,7 @@ import {
   isQueueStation,
   formatQueueTrafficLight,
   parseLimit,
+  cleanDetailFuels,
   parsePrice,
   getBrandInfo,
   getFreshnessText
@@ -127,6 +128,14 @@ test('parseLimit and parsePrice extract data accurately', () => {
   assert.equal(parseLimit('Лимит: 30 л в бак · Очередь до 15 мин'), '30 л в бак');
   assert.equal(parsePrice(undefined, 'Цена 59,20 ₽ за литр'), '59.20');
   assert.equal(parsePrice(61.5), '61.5');
+});
+
+test('cleanDetailFuels removes queue and limit duplicates', () => {
+  assert.equal(cleanDetailFuels('92, 95, 95+, 100, ДТ · Лимит 30 л'), '92, 95, 95+, 100, ДТ');
+  assert.equal(cleanDetailFuels('92, 95, 95+, 100, ДТ · Очередь до 15 мин'), '92, 95, 95+, 100, ДТ');
+  assert.equal(cleanDetailFuels('92, 95, 95+, ДТ · Очередь 15-30 мин · Лимит 30 л в бак'), '92, 95, 95+, ДТ');
+  assert.equal(cleanDetailFuels('Очередь до 15 мин'), null);
+  assert.equal(cleanDetailFuels('Лимит 30 л'), null);
 });
 
 test('getBrandInfo classifies known brands', () => {
