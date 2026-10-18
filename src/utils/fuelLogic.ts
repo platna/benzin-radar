@@ -26,7 +26,8 @@ export interface Station {
   [key: string]: any;
 }
 
-export const GDEBENZ_URL = "https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200";
+export const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec";
+export const GDEBENZ_URL = GOOGLE_SCRIPT_API_URL;
 
 export function isBorOrOutskirts(s: Partial<Station>): boolean {
   const addr = (s.addr || s.address || "").toLowerCase();

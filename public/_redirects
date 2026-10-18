@@ -1,5 +1,5 @@
-# Netlify API Proxy for GdeBenz (bypasses browser CORS on Netlify)
-/api/stations https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200 200!
+# Netlify API Proxy (direct redirect to custom Google Script API)
+/api/stations https://script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec 302!
 /api/comments/:id https://gdebenz.ru/api/comments/:id 200!
 
 # SPA Routing Fallback for PWA

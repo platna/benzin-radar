@@ -5,10 +5,8 @@ import {
   isLeninskyDistrict,
   check95Fuel,
   isQueueStation,
-  formatQueueTrafficLight,
-  GDEBENZ_URL
+  GOOGLE_SCRIPT_API_URL
 } from './utils/fuelLogic';
-import { FALLBACK_STATIONS } from './data/mockStations';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { DeficitSummary } from './components/DeficitSummary';
@@ -17,16 +15,34 @@ import { InfoModal } from './components/InfoModal';
 import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
 
 export default function App() {
-  const [stations, setStations] = useState<Station[]>(FALLBACK_STATIONS);
+  // Initialize from recent live cache if available, otherwise empty until direct API loads
+  const [stations, setStations] = useState<Station[]>(() => {
+    try {
+      const cached = localStorage.getItem('cached_live_stations');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // Ignore
+    }
+    return [];
+  });
   const [currentDistrict, setCurrentDistrict] = useState<DistrictTab>('nagornaya');
   const [activeFilter, setActiveFilter] = useState<FuelStatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLiveApi, setIsLiveApi] = useState(false);
-  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('только что');
+  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>(() => {
+    try {
+      return localStorage.getItem('cached_live_time') || 'только что';
+    } catch {
+      return 'только что';
+    }
+  });
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
-  // Fetch function with multiple CORS proxies, Netlify proxy, and local caching
+  // Fetch function using our dedicated Google Script API (always fresh JSON, zero CORS errors)
   const loadStations = useCallback(async (showIndicator = true) => {
     if (showIndicator) setIsRefreshing(true);
     let fetched = false;
@@ -44,26 +60,35 @@ export default function App() {
       }
     };
 
-    // Sequential candidate endpoints to bypass CORS on Netlify and other static hosts:
-    // 1. /api/stations (handled by server.ts in Node dev, and by _redirects / netlify.toml on Netlify)
-    // 2. https://corsproxy.io/?url=... (explicitly specified by user)
-    // 3. Alternate public CORS proxy
-    // 4. Direct fetch to gdebenz.ru
-    const candidateEndpoints = [
-      '/api/stations',
-      `https://corsproxy.io/?url=${encodeURIComponent(GDEBENZ_URL)}`,
-      `https://corsproxy.io/?url=https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(GDEBENZ_URL)}`,
-      GDEBENZ_URL
-    ];
+    // 1. Primary: Direct fetch from custom Google Script API endpoint
+    try {
+      const res = await fetch(GOOGLE_SCRIPT_API_URL, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const list = Array.isArray(json) ? json : json.stations;
+        if (Array.isArray(list) && list.length > 0) {
+          setStations(list);
+          setIsLiveApi(true);
+          fetched = true;
+          try {
+            localStorage.setItem('cached_live_stations', JSON.stringify(list));
+            localStorage.setItem('cached_live_time', `МСК ${getNowMsk()}`);
+          } catch {
+            // Ignore quota errors
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Google Script API direct fetch failed, trying local proxy:', e);
+    }
 
-    for (const endpoint of candidateEndpoints) {
-      if (fetched) break;
+    // 2. Secondary fallback: local / Netlify proxy if offline or timed out
+    if (!fetched) {
       try {
-        const res = await fetch(endpoint, {
-          headers: { Accept: 'application/json' },
-          signal: AbortSignal.timeout(5000)
-        });
+        const res = await fetch('/api/stations', { signal: AbortSignal.timeout(5000) });
         if (res.ok) {
           const json = await res.json();
           const list = Array.isArray(json) ? json : json.stations;
@@ -75,18 +100,19 @@ export default function App() {
               localStorage.setItem('cached_live_stations', JSON.stringify(list));
               localStorage.setItem('cached_live_time', `МСК ${getNowMsk()}`);
             } catch {
-              // Ignore localStorage quota errors
+              // Ignore
             }
-            break;
           }
         }
       } catch {
-        // Try next candidate endpoint
+        // Fallback
       }
     }
 
-    // If all live network fetches failed, recover from recent localStorage cache
-    if (!fetched) {
+    if (fetched) {
+      setLastUpdatedTime(`МСК ${getNowMsk()}`);
+    } else {
+      // If offline, recover from recent localStorage cache
       try {
         const cached = localStorage.getItem('cached_live_stations');
         const cachedTime = localStorage.getItem('cached_live_time');
@@ -96,47 +122,22 @@ export default function App() {
             setStations(list);
             setIsLiveApi(true);
             if (cachedTime) setLastUpdatedTime(cachedTime);
-            fetched = true;
           }
         }
       } catch {
-        // Ignore JSON parse errors
+        // Ignore
       }
     }
 
-    // Only if network and localStorage both failed on fresh device, use fallback
-    if (!fetched) {
-      setStations(FALLBACK_STATIONS);
-      setIsLiveApi(false);
-    }
-
-    setLastUpdatedTime(`МСК ${getNowMsk()}`);
     if (showIndicator) {
       setTimeout(() => setIsRefreshing(false), 400);
     }
   }, []);
 
-  // Initial load
+  // Initial load & automatic refresh every 5 minutes
   useEffect(() => {
-    // Attempt instant render from previous localStorage session
-    try {
-      const cached = localStorage.getItem('cached_live_stations');
-      const cachedTime = localStorage.getItem('cached_live_time');
-      if (cached) {
-        const list = JSON.parse(cached);
-        if (Array.isArray(list) && list.length > 0) {
-          setStations(list);
-          setIsLiveApi(true);
-          if (cachedTime) setLastUpdatedTime(cachedTime);
-        }
-      }
-    } catch {
-      // Ignore
-    }
-
     loadStations(false);
 
-    // Auto-refresh every 5 minutes (matching script cron)
     const interval = setInterval(() => {
       loadStations(false);
     }, 5 * 60 * 1000);
@@ -144,24 +145,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadStations]);
 
-  // Split stations into Nagornaya and Leninsky according to exact whitelist logic
-  // Merge with fallback stations to guarantee all 17 and 11 stations are always present
+  // Split strictly live stations into Nagornaya and Leninsky according to whitelists
   const nagornayaAll = useMemo(() => {
-    const list = stations.filter(isNagornayaWhitelist);
-    const existing = new Set(list.map((s) => s.addr || s.address || ''));
-    const missing = FALLBACK_STATIONS.filter(isNagornayaWhitelist).filter(
-      (fb) => !existing.has(fb.addr || fb.address || '')
-    );
-    return [...list, ...missing];
+    return stations.filter(isNagornayaWhitelist);
   }, [stations]);
 
   const leninskyAll = useMemo(() => {
-    const list = stations.filter(isLeninskyDistrict);
-    const existing = new Set(list.map((s) => s.addr || s.address || ''));
-    const missing = FALLBACK_STATIONS.filter(isLeninskyDistrict).filter(
-      (fb) => !existing.has(fb.addr || fb.address || '')
-    );
-    return [...list, ...missing];
+    return stations.filter(isLeninskyDistrict);
   }, [stations]);
 
   // Calculate deficit statistics for Nagornaya

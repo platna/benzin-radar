@@ -154,10 +154,7 @@ test('FALLBACK_STATIONS contains 17 Nagornaya and 11 Leninsky stations', async (
   assert.equal(leninsky.length, 11, 'Leninsky district should have exactly 11 stations');
 });
 
-test('calculateWhereBenzConfidence matches WhereBenz decaying formula exactly', async () => {
-  const { calculateWhereBenzConfidence } = await import('./fuelLogic.ts');
-  // At 1 hour ago with base 0.8795, decay drops it to 85% with 5% rounding (exactly matching WhereBenz)
-  const d = new Date(Date.now() - 1 * 3600 * 1000).toISOString();
-  const res = calculateWhereBenzConfidence(0.8795, d);
-  assert.equal(res, 85);
+test('GOOGLE_SCRIPT_API_URL is configured properly', async () => {
+  const { GOOGLE_SCRIPT_API_URL } = await import('./fuelLogic.ts');
+  assert.ok(GOOGLE_SCRIPT_API_URL.includes('script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec'));
 });

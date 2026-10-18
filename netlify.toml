@@ -4,8 +4,8 @@
 
 [[redirects]]
   from = "/api/stations"
-  to = "https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200"
-  status = 200
+  to = "https://script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec"
+  status = 302
   force = true
 
 [[redirects]]

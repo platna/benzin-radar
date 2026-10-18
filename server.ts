@@ -9,7 +9,8 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
-const GDEBENZ_URL = 'https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200';
+const GOOGLE_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec';
+const GDEBENZ_URL = GOOGLE_SCRIPT_API_URL;
 
 let cachedStations: any = null;
 let lastCacheTime = 0;
