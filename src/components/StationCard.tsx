@@ -2,6 +2,7 @@ import React from 'react';
 import { Station } from '../types/station';
 import {
   check95Fuel,
+  isQueueStation,
   formatQueueTrafficLight,
   parseLimit,
   getFreshnessText,
@@ -27,10 +28,12 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   const fuelInfo = check95Fuel(station);
   const queueTraffic = formatQueueTrafficLight(station.detail);
   const limit = parseLimit(station.detail);
+
+  // Automatic payment terminal signal is ONLY present when station.svc is provided
+  const hasAutoSignal = Boolean(station.svc || station.svc_only);
+  const autoTime = hasAutoSignal ? (station.last_auto_at || station.last_at) : null;
   const driverTime = station.last_driver_at || (station.svc === 'only' ? null : station.last_at);
-  const autoTime = station.last_auto_at;
-  const isSvcOnly = station.svc === 'only' || station.svc_only || (!station.last_driver_at && (station.confidence_base ?? 1) <= 0.35);
-  const hasAutoSignal = Boolean(station.svc_fresh || station.svc === 'only' || (autoTime && driverTime && autoTime > driverTime));
+  const isSvcOnly = station.svc === 'only' || station.svc_only;
 
   const driverFreshness = getFreshnessText(driverTime || undefined);
   const autoFreshness = getFreshnessText(autoTime || undefined);
@@ -43,7 +46,7 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   );
 
   // Status plate styling: distinguishes 'АИ-95 В НАЛИЧИИ', 'АИ-95 · ОЧЕРЕДЬ', and 'НЕТ АИ-95'
-  const isHeavyQueue = fuelInfo.state === 'queue' || (queueTraffic !== null && (queueTraffic.level === 'yellow' || queueTraffic.level === 'red'));
+  const isHeavyQueue = isQueueStation(station);
 
   let statusBannerClass = '';
   let statusText = '';
@@ -183,15 +186,20 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
 
           {/* Time Freshness: Driver mark vs Auto Signal */}
           <div className="text-[10px] sm:text-[11px] text-right ml-auto flex flex-col items-end shrink-0 leading-tight">
-            {driverTime ? (
+            {driverTime && !isSvcOnly ? (
               <div className="flex items-center gap-1 text-slate-300">
                 <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                 <span>Водитель: {driverFreshness.diffText}</span>
               </div>
-            ) : (
+            ) : hasAutoSignal ? (
               <div className="flex items-center gap-1 text-slate-500">
                 <Clock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
                 <span>Отметок водителей нет</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-slate-400">
+                <Clock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
+                <span>{driverFreshness.diffText}</span>
               </div>
             )}
             {hasAutoSignal && autoTime && (

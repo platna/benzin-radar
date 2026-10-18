@@ -4,6 +4,7 @@ import {
   isNagornayaWhitelist,
   isLeninskyDistrict,
   check95Fuel,
+  isQueueStation,
   formatQueueTrafficLight,
   GDEBENZ_URL
 } from './utils/fuelLogic';
@@ -129,13 +130,9 @@ export default function App() {
 
     nagornayaAll.forEach((s) => {
       const fuel = check95Fuel(s);
-      const queueTraffic = formatQueueTrafficLight(s.detail);
-      const hasLimit = /лимит/i.test(s.detail || '');
-      const hasQueue = fuel.state === 'queue' || (queueTraffic !== null && queueTraffic.level !== 'unknown') || hasLimit;
-
       if (fuel.state !== 'none') {
         available++;
-        if (hasQueue) {
+        if (isQueueStation(s)) {
           queue++;
         } else {
           free++;
@@ -155,13 +152,9 @@ export default function App() {
 
     leninskyAll.forEach((s) => {
       const fuel = check95Fuel(s);
-      const queueTraffic = formatQueueTrafficLight(s.detail);
-      const hasLimit = /лимит/i.test(s.detail || '');
-      const hasQueue = fuel.state === 'queue' || (queueTraffic !== null && queueTraffic.level !== 'unknown') || hasLimit;
-
       if (fuel.state !== 'none') {
         available++;
-        if (hasQueue) {
+        if (isQueueStation(s)) {
           queue++;
         } else {
           free++;
@@ -181,7 +174,6 @@ export default function App() {
   const displayedStations = useMemo(() => {
     return activeDistrictList.filter((s) => {
       const fuel = check95Fuel(s);
-      const queueTraffic = formatQueueTrafficLight(s.detail);
       const brand = (s.brand || s.name || '').toLowerCase();
       const addr = (s.addr || s.address || '').toLowerCase();
 
@@ -190,9 +182,7 @@ export default function App() {
         if (fuel.state === 'none') return false;
       } else if (activeFilter === 'no_queue') {
         if (fuel.state === 'none') return false;
-        // Keep free stations or stations where queue is minimal (<15 min)
-        if (queueTraffic && (queueTraffic.level === 'yellow' || queueTraffic.level === 'red')) return false;
-        if (fuel.state === 'queue' && (!queueTraffic || queueTraffic.level !== 'green')) return false;
+        if (isQueueStation(s)) return false;
       } else if (activeFilter === 'lukoil') {
         if (brand.indexOf('лукойл') === -1 && brand.indexOf('lukoil') === -1) return false;
       } else if (activeFilter === 'gpn') {
@@ -216,15 +206,8 @@ export default function App() {
       // Prioritize free available stations first (0), then queue stations (1), then empty stations (2)
       const aFuel = check95Fuel(a);
       const bFuel = check95Fuel(b);
-      const aTraffic = formatQueueTrafficLight(a.detail);
-      const bTraffic = formatQueueTrafficLight(b.detail);
-      const aHasLimit = /лимит/i.test(a.detail || '');
-      const bHasLimit = /лимит/i.test(b.detail || '');
-      const aQueue = aFuel.state === 'queue' || (aTraffic && aTraffic.level !== 'green') || aHasLimit;
-      const bQueue = bFuel.state === 'queue' || (bTraffic && bTraffic.level !== 'green') || bHasLimit;
-
-      const aScore = aFuel.state === 'none' ? 2 : aQueue ? 1 : 0;
-      const bScore = bFuel.state === 'none' ? 2 : bQueue ? 1 : 0;
+      const aScore = aFuel.state === 'none' ? 2 : isQueueStation(a) ? 1 : 0;
+      const bScore = bFuel.state === 'none' ? 2 : isQueueStation(b) ? 1 : 0;
       return aScore - bScore;
     });
   }, [activeDistrictList, activeFilter, searchQuery]);

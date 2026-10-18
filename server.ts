@@ -99,15 +99,6 @@ app.get('/api/stations', async (req, res) => {
                 if (comment.confidenceBase !== undefined && comment.confidenceBase !== null) {
                   st.confidence_base = comment.confidenceBase;
                 }
-                if (comment.updated) {
-                  st.last_auto_at = comment.updated;
-                }
-                if (comment.updatedSupport) {
-                  st.last_driver_at = comment.updatedSupport;
-                }
-                // Prioritize real driver confirmation for last_at so freshness and confidence decay reflect human driver marks
-                st.last_at = comment.updatedSupport || comment.updated || st.last_at;
-
                 if (comment.confirmations !== undefined) {
                   st.confirmations = comment.confirmations;
                 }
@@ -126,12 +117,22 @@ app.get('/api/stations', async (req, res) => {
                 if (comment.svc === 'only' || st.svc === 'only') {
                   st.svc_only = true;
                 }
-                if (comment.svcFresh) {
-                  st.svc_fresh = true;
+                if (comment.dtOnly !== undefined) {
+                  st.dt_only = comment.dtOnly;
                 }
-                if (comment.detail && !st.detail) {
+                if (comment.detail) {
                   st.detail = comment.detail;
                 }
+
+                // Automatic signal timestamp is only relevant if there is an automatic signal (svc)
+                if (st.svc) {
+                  st.last_auto_at = comment.updated || st.last_at;
+                  st.last_driver_at = comment.updatedSupport || null;
+                } else {
+                  st.last_auto_at = null;
+                  st.last_driver_at = comment.updatedSupport || comment.updated || st.last_at;
+                }
+                st.last_at = st.last_driver_at || st.last_auto_at || st.last_at;
               }
             } catch {
               // Ignore single comment failure, base station info is already present

@@ -114,26 +114,38 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
 
   // Stations with ONLY an automatic transaction signal ("Заправка работала") and no driver confirmation
   // GdeBenz: "Отметок водителей здесь нет. Недавно проходила оплата — значит, заправка работала. Есть ли сейчас топливо, никто не подтверждал."
-  const isSvcOnly = s.svc === "only" || Boolean(s.svc_only) || (Boolean(s.svc_fresh) && !s.last_driver_at && (s.confidence_base ?? 1) <= 0.35);
+  const isSvcOnly = s.svc === "only" || Boolean(s.svc_only);
   if (isSvcOnly) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  const fuelsNow = (s.fuels_now || "").toLowerCase();
-  const detail = (s.detail || "").toLowerCase();
-
-  const has95Plus = /(?:^|[^\d])95\+/i.test(detail) || /g[-_ ]?95|g-drive|экто/i.test(detail) || /(?:^|[,\s])95\+/i.test(fuelsNow);
-  const has95Explicit = /(?:^|[^\d])95(?:\+|plus)?(?:[^\d]|$)/i.test(detail) || /(?:^|[,\s])95(?:\+|plus)?(?:[,\s]|$)/i.test(fuelsNow);
-
-  // If detail explicitly says NO 95 (e.g. "нет 95", "95 нет", "без 95", "только 92", "только дт")
-  if (/нет 95|95 нет|без 95|только (?:дт|дизель|92)|заправка не работает/i.test(detail)) {
+  if (Boolean(s.dt_only)) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  // If explicit fuel list mentions other fuels (like '92, ДТ' or 'ДТ') and NOT 95
-  const explicitFuels = fuelsNow || detail;
-  const mentionsOtherFuels = /(?:^|[^\dа-яa-z])(92|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(explicitFuels);
-  if (mentionsOtherFuels && !has95Explicit && !has95Plus) {
+  const detail = (s.detail || "").toLowerCase();
+  const fuelsNow = (s.fuels_now || "").toLowerCase();
+
+  // If detail explicitly says NO 95 (e.g. "нет 95", "95 нет", "без 95", "только 92", "только дт", "видимо только дизель")
+  if (/нет 95|95 нет|без 95|только (?:дт|дизель|92)|видимо только (?:дт|дизель)|заправка не работает/i.test(detail)) {
+    return { state: "none", has95: false, has95Plus: false };
+  }
+
+  const has95PlusInDetail = /(?:^|[^\d])95\+/i.test(detail) || /g[-_ ]?95|g-drive|экто/i.test(detail);
+  const has95InDetail = /(?:^|[^\d])95(?:\+|plus)?(?:[^\d]|$)/i.test(detail) || has95PlusInDetail;
+  const detailMentionsFuel = /(?:^|[^\dа-яa-z])(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(detail);
+
+  // If recent user detail specifies fuels and does NOT mention 95 (e.g. detail is 'ДТ', 'дизель', '92, ДТ')
+  if (detailMentionsFuel && !has95InDetail) {
+    return { state: "none", has95: false, has95Plus: false };
+  }
+
+  const has95Plus = has95PlusInDetail || /(?:^|[,\s])95\+/i.test(fuelsNow);
+  const has95Explicit = has95InDetail || /(?:^|[,\s])95(?:\+|plus)?(?:[,\s]|$)/i.test(fuelsNow);
+
+  // If fuels_now specifies fuels without 95
+  const fuelsNowMentionsFuel = /(?:^|[^\dа-яa-z])(92|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(fuelsNow);
+  if (fuelsNowMentionsFuel && !has95Explicit && !has95Plus) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
@@ -141,10 +153,26 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   const has95 = has95Explicit || status === "yes";
 
   let state: "available" | "queue" = "available";
-  if (status === "queue" || status === "warning" || /очеред/i.test(detail) || /очеред/i.test(fuelsNow) || Boolean(s.meta?.queue)) {
+  const queueTraffic = formatQueueTrafficLight(s.detail);
+  if (status === "queue" || status === "warning" || Boolean(s.meta?.queue)) {
+    state = "queue";
+  } else if (queueTraffic) {
+    // Only yellow/red traffic lights represent a queue
+    if (queueTraffic.level === "yellow" || queueTraffic.level === "red") {
+      state = "queue";
+    }
+  } else if (/(?:большая|длинная|огромная)\s+очеред/i.test(detail)) {
     state = "queue";
   }
   return { state, has95, has95Plus };
+}
+
+export function isQueueStation(s: Partial<Station>): boolean {
+  const fuel = check95Fuel(s);
+  if (fuel.state === "none") return false;
+  if (fuel.state === "queue") return true;
+  const queueTraffic = formatQueueTrafficLight(s.detail);
+  return Boolean(queueTraffic && (queueTraffic.level === "yellow" || queueTraffic.level === "red"));
 }
 
 export interface QueueTrafficLight {

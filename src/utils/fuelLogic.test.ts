@@ -5,6 +5,7 @@ import {
   isNagornayaWhitelist,
   isLeninskyDistrict,
   check95Fuel,
+  isQueueStation,
   formatQueueTrafficLight,
   parseLimit,
   parsePrice,
@@ -60,6 +61,15 @@ test('check95Fuel correctly determines fuel availability and queue', () => {
   assert.deepEqual(check95Fuel({ status: 'no' }), { state: 'none', has95: false, has95Plus: false });
   assert.deepEqual(check95Fuel({ fuels_now: '92, ДТ' }), { state: 'none', has95: false, has95Plus: false });
   
+  // When detail reports only diesel (even if fuels_now has 95), 95 is none
+  const teboilOnlyDiesel = check95Fuel({ fuels_now: '92,95,95+,ДТ', detail: 'ДТ', status: 'yes' });
+  assert.equal(teboilOnlyDiesel.state, 'none');
+  assert.equal(teboilOnlyDiesel.has95, false);
+
+  // When detail says 'видимо только дизель'
+  const onlyDtComment = check95Fuel({ fuels_now: '92,95,95+,ДТ', detail: 'видимо только дизель', status: 'yes' });
+  assert.equal(onlyDtComment.state, 'none');
+
   // 95 available
   const res1 = check95Fuel({ fuels_now: '92, 95, 100', status: 'available' });
   assert.equal(res1.state, 'available');
@@ -70,10 +80,10 @@ test('check95Fuel correctly determines fuel availability and queue', () => {
   assert.equal(res2.state, 'queue');
   assert.equal(res2.has95, true);
 
-  // 95+ / Экто / G-Drive in detail with queue mentioned
+  // 95+ / Экто / G-Drive in detail with minimal queue (до 15 мин is free/available, not queue)
   const res3 = check95Fuel({ detail: 'АИ-95 Экто в наличии. Очередь до 15 мин' });
   assert.equal(res3.has95Plus, true);
-  assert.equal(res3.state, 'queue');
+  assert.equal(res3.state, 'available');
 
   // 95+ available without queue
   const res4 = check95Fuel({ detail: 'АИ-95 Экто в наличии. Свободно' });
@@ -83,6 +93,20 @@ test('check95Fuel correctly determines fuel availability and queue', () => {
   // svc: only (automated payment terminal ping without driver confirmation)
   const res5 = check95Fuel({ status: 'yes', svc: 'only', confidence_base: 0.35 });
   assert.equal(res5.state, 'none');
+});
+
+test('isQueueStation accurately identifies heavy queues and rejects green traffic lights', () => {
+  // Green traffic light (до 15 мин or нет) is NOT a queue
+  assert.equal(isQueueStation({ detail: '92, 95, ДТ · Очередь до 15 мин' }), false);
+  assert.equal(isQueueStation({ detail: '92, 95, ДТ · Очередь: нет' }), false);
+
+  // Yellow and Red traffic lights ARE queues
+  assert.equal(isQueueStation({ detail: '92, 95, ДТ · Очередь: 15-30 мин' }), true);
+  assert.equal(isQueueStation({ detail: '92, 95, ДТ · Очередь: 30-60 мин' }), true);
+  assert.equal(isQueueStation({ detail: '92, 95, ДТ · Очередь: 1-2 часа' }), true);
+
+  // Empty station is not a queue station
+  assert.equal(isQueueStation({ status: 'no', detail: 'Очередь: 30 мин' }), false);
 });
 
 test('formatQueueTrafficLight returns green, yellow or red indicator', () => {
