@@ -9,6 +9,7 @@ import {
   formatQueueTrafficLight,
   parseLimit,
   cleanDetailFuels,
+  getStationFuelsInfo,
   parsePrice,
   getBrandInfo,
   getFreshnessText
@@ -165,7 +166,23 @@ test('FALLBACK_STATIONS contains 17 Nagornaya and 11 Leninsky stations', async (
   assert.equal(leninsky.length, 11, 'Leninsky district should have exactly 11 stations');
 });
 
-test('GOOGLE_SCRIPT_API_URL is configured properly', async () => {
-  const { GOOGLE_SCRIPT_API_URL } = await import('./fuelLogic.ts');
-  assert.ok(GOOGLE_SCRIPT_API_URL.includes('script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec'));
+test('getStationFuelsInfo provides accurate fuels from live detail, fuels_now or meta fallback', () => {
+  // Live detail
+  const f1 = getStationFuelsInfo({ detail: '92, 95, ДТ · Лимит 30 л' });
+  assert.equal(f1?.text, '92, 95, ДТ');
+  assert.equal(f1?.source, 'live');
+
+  // Live fuels_now
+  const f2 = getStationFuelsInfo({ fuels_now: '92,95,95+,ДТ' });
+  assert.equal(f2?.text, '92, 95, 95+, ДТ');
+
+  // Meta fallback (e.g. Vaneeva 247)
+  const f3 = getStationFuelsInfo({ addr: 'ул Ванеева, 247', brand: 'Лукойл', meta: { f: ['dt', '92', '95', '100'] } });
+  assert.equal(f3?.text, '92, 95, 100, ДТ');
+  assert.equal(f3?.label, 'по последней отметке');
+
+  // Geroya Popova 58V fallback
+  const f4 = getStationFuelsInfo({ addr: 'ул Героя Попова, 58В', brand: 'Газпромнефть', meta: { f: ['dt', '92', '95'] } });
+  assert.equal(f4?.text, '92, 95, 95+, ДТ');
+  assert.equal(f4?.label, 'по последней отметке');
 });

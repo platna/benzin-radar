@@ -5,7 +5,7 @@ import {
   isQueueStation,
   formatQueueTrafficLight,
   parseLimit,
-  cleanDetailFuels,
+  getStationFuelsInfo,
   getFreshnessText,
   getBrandInfo,
   getNavigationUrls,
@@ -30,9 +30,10 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   const queueTraffic = formatQueueTrafficLight(station.detail);
   const limit = parseLimit(station.detail);
 
-  const driverTime = station.last_driver_at || (station.svc === 'only' ? null : station.last_at);
-  const autoTime = station.last_auto_at;
-  const isSvcOnly = station.svc === 'only' || station.svc_only;
+  const isSvcOnly = station.svc === 'only' || Boolean(station.svc_only);
+  const driverTime = station.last_driver_at || (isSvcOnly ? null : station.last_at);
+  // If svc === 'only', last_at is the automated transaction terminal timestamp
+  const autoTime = station.last_auto_at || (isSvcOnly ? station.last_at : null);
 
   // Auto signal ("Заправка работала") is shown if:
   // 1. Station only has an automated signal (no driver mark)
@@ -45,6 +46,7 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
 
   const driverFreshness = getFreshnessText(driverTime || undefined);
   const autoFreshness = getFreshnessText(autoTime || undefined);
+  const generalFreshness = getFreshnessText(station.last_at || undefined);
   const { yandexUrl, twoGisUrl, gdebenzUrl } = getNavigationUrls(station);
 
   // Exact WhereBenz confidence with time decay based on driver confirmation
@@ -86,17 +88,8 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
     }
   }
 
-  // Remove queue and limit duplicates from the bottom fuel types row
-  const cleanedDetail = cleanDetailFuels(station.detail);
-  const sanitizedDetail =
-    cleanedDetail ||
-    (station.fuels_now
-      ? station.fuels_now
-          .split(',')
-          .map((f) => f.trim())
-          .filter(Boolean)
-          .join(', ')
-      : null);
+  // Fuel types information (live confirmed or historical from meta/last mark)
+  const fuelsInfo = getStationFuelsInfo(station);
 
   return (
     <article className="bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 shadow-lg transition-all duration-200">
@@ -140,7 +133,7 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
 
       {/* Badges Bar: Fuel Type, Euro-5, Confidence */}
       <div className="flex flex-wrap items-center gap-1.5 mb-2.5 pt-0.5">
-        {/* Specific Fuel Badge: 95 Экто / 95 G-Drive / АИ-95 */}
+        {/* Specific Fuel Badge: 95 Экто / 95 G-Drive / АИ-95 / АИ-95: нет */}
         {fuelInfo.has95Plus ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-xs">
             <span>✨</span>
@@ -150,7 +143,11 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
           <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             АИ-95
           </span>
-        ) : null}
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-400 border border-slate-700/80">
+            АИ-95: нет
+          </span>
+        )}
 
         {/* Euro-5 / K5 Class */}
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/80">
@@ -171,7 +168,7 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
       </div>
 
       {/* Middle Row: Traffic Light Queue & Limits */}
-      <div className="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/90 mb-3 space-y-1.5 text-xs">
+      <div className="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/90 mb-3 space-y-2 text-xs">
         <div className="flex items-center justify-between gap-1.5">
           {/* Queue traffic light */}
           {queueTraffic ? (
@@ -191,25 +188,25 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
             </div>
           )}
 
-          {/* Time Freshness: Driver mark vs Auto Signal */}
+          {/* Time Freshness: Driver mark vs Auto Signal (always showing recency) */}
           <div className="text-[10px] sm:text-[11px] text-right ml-auto flex flex-col items-end shrink-0 leading-tight">
             {driverTime && !isSvcOnly ? (
               <div className="flex items-center gap-1 text-slate-300">
                 <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                 <span>Водитель: {driverFreshness.diffText}</span>
               </div>
-            ) : hasAutoSignal ? (
-              <div className="flex items-center gap-1 text-slate-500">
-                <Clock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
-                <span>Отметок водителей нет</span>
+            ) : hasAutoSignal && autoTime ? (
+              <div className="flex items-center gap-1 text-teal-400 font-medium">
+                <Clock className="w-2.5 h-2.5 text-teal-400 shrink-0" />
+                <span>⚡ Заправка работала: {autoFreshness.diffText}</span>
               </div>
             ) : (
               <div className="flex items-center gap-1 text-slate-400">
                 <Clock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
-                <span>{driverFreshness.diffText}</span>
+                <span>{generalFreshness.diffText}</span>
               </div>
             )}
-            {hasAutoSignal && autoTime && (
+            {hasAutoSignal && autoTime && driverTime && !isSvcOnly && (
               <span
                 className="text-[10px] text-teal-400/90 flex items-center gap-0.5 mt-0.5 font-medium"
                 title="На этой заправке прошла оплата (автоматический сигнал), наличие АИ-95 не гарантировано водителем"
@@ -217,12 +214,17 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
                 <span>⚡ Заправка работала: {autoFreshness.diffText}</span>
               </span>
             )}
+            {hasAutoSignal && !driverTime && (
+              <span className="text-[9px] text-slate-500 mt-0.5">
+                (отметок водителей нет)
+              </span>
+            )}
           </div>
         </div>
 
         {/* Svc Only Warning: Unconfirmed fuel notice */}
         {isSvcOnly && (
-          <div className="flex items-start gap-1.5 px-2 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-amber-300/90 text-[11px] leading-snug">
+          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300/90 text-[11px] leading-snug">
             <span className="shrink-0 mt-0.5">ℹ️</span>
             <span>Только автосигнал оплаты терминала. Наличие АИ-95 водителями не подтверждалось.</span>
           </div>
@@ -236,12 +238,27 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
           </div>
         )}
 
-        {/* Detail string summary if contains extra notes */}
-        {sanitizedDetail && (
-          <p className="text-[11px] text-slate-400 line-clamp-2 border-t border-slate-800/60 pt-1.5 mt-1 leading-relaxed">
-            {sanitizedDetail}
-          </p>
-        )}
+        {/* Fuel types row: Always visible, clearly rendered beneath any notices */}
+        <div className="border-t border-slate-800/80 pt-2 mt-2 flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="font-semibold text-slate-200 tracking-wide truncate">
+              {fuelInfo.state === 'none' && fuelsInfo.source === 'live' ? (
+                <span>
+                  В наличии: <span className="text-white">{fuelsInfo.text}</span>{' '}
+                  <span className="text-rose-400 font-normal">· АИ-95 нет</span>
+                </span>
+              ) : (
+                <span>{fuelsInfo.text}</span>
+              )}
+            </span>
+          </div>
+          {fuelsInfo.label && (
+            <span className="text-[10px] text-slate-500 shrink-0 ml-2 font-normal">
+              {fuelsInfo.label}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Bottom Action Buttons */}

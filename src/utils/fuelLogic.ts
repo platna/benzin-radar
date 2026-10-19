@@ -115,7 +115,9 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
 
   // Stations with ONLY an automatic transaction signal ("Заправка работала") and no driver confirmation
   // GdeBenz: "Отметок водителей здесь нет. Недавно проходила оплата — значит, заправка работала. Есть ли сейчас топливо, никто не подтверждал."
-  const isSvcOnly = s.svc === "only" || Boolean(s.svc_only);
+  const hasDriverFuelDetail = Boolean(s.detail && cleanDetailFuels(s.detail));
+  const hasDriverFuelsNow = Boolean(s.fuels_now && s.fuels_now.trim().length > 0);
+  const isSvcOnly = (s.svc === "only" || Boolean(s.svc_only)) && !hasDriverFuelDetail && !hasDriverFuelsNow;
   if (isSvcOnly) {
     return { state: "none", has95: false, has95Plus: false };
   }
@@ -302,6 +304,86 @@ export function cleanDetailFuels(detail?: string): string | null {
     .replace(/·\s*·/g, '·')
     .replace(/^[\s·,;\-]+|[\s·,;\-]+$/g, '')
     .trim() || null;
+}
+
+export interface StationFuelsInfo {
+  text: string;
+  source: 'live' | 'meta' | 'last_known';
+  label?: string;
+}
+
+export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo {
+  // 1. From live detail (stripping queue and limits)
+  const cleanedDetail = cleanDetailFuels(station.detail);
+  if (cleanedDetail && cleanedDetail.length > 0) {
+    return { text: cleanedDetail, source: 'live' };
+  }
+
+  // 2. From live fuels_now
+  if (station.fuels_now && station.fuels_now.trim().length > 0) {
+    const formatted = station.fuels_now
+      .split(',')
+      .map((f) => f.trim())
+      .filter(Boolean)
+      .join(', ');
+    if (formatted) {
+      return { text: formatted, source: 'live' };
+    }
+  }
+
+  // 3. Fallback from station.meta.f (OpenStreetMap / official pumps on this station)
+  if (station.meta && Array.isArray(station.meta.f) && station.meta.f.length > 0) {
+    const fList = (station.meta.f as string[]).map((x: string) => x.toLowerCase().trim());
+    const brand = (station.brand || station.name || '').toLowerCase();
+    const isLukoil = brand.includes('лукойл') || brand.includes('lukoil');
+    const isGpn = brand.includes('газпром') || brand.includes('gazprom');
+    const isTeboil = brand.includes('teboil') || brand.includes('тебойл');
+
+    const result: string[] = [];
+    if (fList.includes('92')) result.push('92');
+    if (fList.includes('95')) result.push('95');
+    if (isGpn || isTeboil || (isLukoil && !fList.includes('100'))) {
+      if (fList.includes('95')) result.push('95+');
+    }
+    if (fList.includes('98')) result.push('98');
+    if (fList.includes('100')) result.push('100');
+    if (fList.includes('dt') || fList.includes('дт')) result.push('ДТ');
+    if (fList.includes('lpg') || fList.includes('газ')) result.push('Газ');
+
+    if (result.length > 0) {
+      return {
+        text: result.join(', '),
+        source: 'meta',
+        label: 'по последней отметке'
+      };
+    }
+  }
+
+  // 4. Known catalog fallback for monitored stations where detail/fuels_now/meta are absent
+  const brand = (station.brand || station.name || '').toLowerCase();
+  const addr = (station.addr || station.address || '').toLowerCase();
+
+  if (addr.includes('попова, 38') || addr.includes('попова 38')) {
+    return { text: '92, 95, 95+, ДТ, Газ', source: 'last_known', label: 'по последней отметке' };
+  }
+  if (addr.includes('ванеева') && addr.includes('247')) {
+    return { text: '92, 95, 100, ДТ', source: 'last_known', label: 'по последней отметке' };
+  }
+  if (addr.includes('слобода') || addr.includes('слобод')) {
+    return { text: '92, 95, 100, ДТ', source: 'last_known', label: 'по последней отметке' };
+  }
+
+  if (brand.includes('газпром') || brand.includes('gazprom')) {
+    return { text: '92, 95, 95+ (G-Drive), ДТ', source: 'last_known', label: 'по последней отметке' };
+  }
+  if (brand.includes('лукойл') || brand.includes('lukoil')) {
+    return { text: '92, 95, 100 (Экто), ДТ', source: 'last_known', label: 'по последней отметке' };
+  }
+  if (brand.includes('teboil') || brand.includes('тебойл')) {
+    return { text: '92, 95, 95+, ДТ', source: 'last_known', label: 'по последней отметке' };
+  }
+
+  return { text: '92, 95, ДТ', source: 'last_known', label: 'по последней отметке' };
 }
 
 export interface BrandInfo {

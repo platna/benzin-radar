@@ -7,6 +7,7 @@ import {
   isQueueStation,
   GOOGLE_SCRIPT_API_URL
 } from './utils/fuelLogic';
+import { FALLBACK_STATIONS } from './data/mockStations';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { DeficitSummary } from './components/DeficitSummary';
@@ -15,7 +16,7 @@ import { InfoModal } from './components/InfoModal';
 import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
 
 export default function App() {
-  // Initialize from recent live cache if available, otherwise empty until direct API loads
+  // Initialize from recent live cache if available, otherwise authentic fallback stations
   const [stations, setStations] = useState<Station[]>(() => {
     try {
       const cached = localStorage.getItem('cached_live_stations');
@@ -26,7 +27,7 @@ export default function App() {
     } catch {
       // Ignore
     }
-    return [];
+    return FALLBACK_STATIONS;
   });
   const [currentDistrict, setCurrentDistrict] = useState<DistrictTab>('nagornaya');
   const [activeFilter, setActiveFilter] = useState<FuelStatusFilter>('all');
@@ -145,16 +146,54 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadStations]);
 
-  // Split strictly live stations into Nagornaya and Leninsky according to whitelists
+  // Canonical lists: strictly 17 stations for Nagornaya, strictly 11 stations for Leninsky
+  const canonicalNagornaya = useMemo(() => FALLBACK_STATIONS.filter(isNagornayaWhitelist), []);
+  const canonicalLeninsky = useMemo(() => FALLBACK_STATIONS.filter(isLeninskyDistrict), []);
+
+  // Merge live API station data onto canonical lists so neither district ever loses stations
   const nagornayaAll = useMemo(() => {
-    return stations.filter(isNagornayaWhitelist);
-  }, [stations]);
+    return canonicalNagornaya.map((canon) => {
+      const live = stations.find(
+        (s) =>
+          (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) ||
+          (s.addr && canon.addr && s.addr.trim().toLowerCase() === canon.addr.trim().toLowerCase())
+      );
+      if (!live) return canon;
+      return {
+        ...canon,
+        ...live,
+        name: live.name || canon.name,
+        brand: live.brand || canon.brand,
+        addr: live.addr || canon.addr,
+        lat: live.lat ?? canon.lat,
+        lon: live.lon ?? canon.lon,
+        meta: live.meta || canon.meta
+      };
+    });
+  }, [canonicalNagornaya, stations]);
 
   const leninskyAll = useMemo(() => {
-    return stations.filter(isLeninskyDistrict);
-  }, [stations]);
+    return canonicalLeninsky.map((canon) => {
+      const live = stations.find(
+        (s) =>
+          (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) ||
+          (s.addr && canon.addr && s.addr.trim().toLowerCase() === canon.addr.trim().toLowerCase())
+      );
+      if (!live) return canon;
+      return {
+        ...canon,
+        ...live,
+        name: live.name || canon.name,
+        brand: live.brand || canon.brand,
+        addr: live.addr || canon.addr,
+        lat: live.lat ?? canon.lat,
+        lon: live.lon ?? canon.lon,
+        meta: live.meta || canon.meta
+      };
+    });
+  }, [canonicalLeninsky, stations]);
 
-  // Calculate deficit statistics for Nagornaya
+  // Calculate deficit statistics for Nagornaya (strictly out of 17)
   const nagornayaStats = useMemo(() => {
     let available = 0;
     let free = 0;
@@ -172,11 +211,11 @@ export default function App() {
       }
     });
 
-    const total = 17; // Fixed 17 as in script
+    const total = 17;
     return { total, available, free, queue, empty: Math.max(0, total - available) };
   }, [nagornayaAll]);
 
-  // Calculate deficit statistics for Leninsky
+  // Calculate deficit statistics for Leninsky (strictly out of 11)
   const leninskyStats = useMemo(() => {
     let available = 0;
     let free = 0;
@@ -194,7 +233,7 @@ export default function App() {
       }
     });
 
-    const total = 11; // Fixed 11 as in script
+    const total = 11;
     return { total, available, free, queue, empty: Math.max(0, total - available) };
   }, [leninskyAll]);
 

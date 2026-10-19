@@ -2270,6 +2270,13 @@ export const FALLBACK_STATIONS: Station[] = [
     "confirmations": 1,
     "last_at": "2026-10-18 04:23:34",
     "confidence_base": 0.35,
+    "meta": {
+      "f": [
+        "dt",
+        "92",
+        "95"
+      ]
+    },
     "svc": "only"
   },
   {
@@ -2308,6 +2315,13 @@ export const FALLBACK_STATIONS: Station[] = [
     "confirmations": 1,
     "last_at": "2026-10-18 10:22:17",
     "confidence_base": 0.35,
+    "meta": {
+      "f": [
+        "dt",
+        "92",
+        "95"
+      ]
+    },
     "svc": "only"
   },
   {
