@@ -132,26 +132,35 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  const has95PlusInDetail = /(?:^|[^\d])95\+/i.test(detail) || /g[-_ ]?95|g-drive|экто/i.test(detail);
-  const has95InDetail = /(?:^|[^\d])95(?:\+|plus)?(?:[^\d]|$)/i.test(detail) || has95PlusInDetail;
-  const detailMentionsFuel = /(?:^|[^\dа-яa-z])(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(detail);
+  const cleanTokens = detail
+    .replace(/(?:очередь[:\s\-]*[^.;\n·]+|без очереди)/gi, ' ')
+    .replace(/лимит[:\s\-]*[^.;\n·]+/gi, ' ');
+  const has95PlusInDetail = /(?:^|[^\d])95\+/i.test(cleanTokens) || /g[-_ ]?95|g-drive|экто/i.test(cleanTokens);
+  const has95InDetail = /(?:^|[^\d])95(?:\+|plus)?(?:[^\d]|$)/i.test(cleanTokens) || has95PlusInDetail;
+  const detailMentionsFuel = /(?:^|[^\dа-яa-z])(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(cleanTokens);
 
   // If recent user detail specifies fuels and does NOT mention 95 (e.g. detail is 'ДТ', 'дизель', '92, ДТ')
   if (detailMentionsFuel && !has95InDetail) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  const has95Plus = has95PlusInDetail || /(?:^|[,\s])95\+/i.test(fuelsNow);
-  const has95Explicit = has95InDetail || /(?:^|[,\s])95(?:\+|plus)?(?:[,\s]|$)/i.test(fuelsNow);
+  const has95PlusInFuelsNow = /(?:^|[,\s])95\+/i.test(fuelsNow) || /g95|g-95|экто95/i.test(fuelsNow);
+  const has95InFuelsNow = /(?:^|[,\s])95(?:\+|plus)?(?:[,\s]|$)/i.test(fuelsNow) || has95PlusInFuelsNow;
+  const fuelsNowMentionsFuel = /(?:^|[^\dа-яa-z])(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(fuelsNow);
 
-  // If fuels_now specifies fuels without 95
-  const fuelsNowMentionsFuel = /(?:^|[^\dа-яa-z])(92|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(fuelsNow);
-  if (fuelsNowMentionsFuel && !has95Explicit && !has95Plus) {
+  // If fuels_now specifies fuels without 95 (e.g. '92,ДТ' or 'ДТ')
+  if (fuelsNowMentionsFuel && !has95InFuelsNow) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  // Active status stations have AI-95 available
-  const has95 = has95Explicit || status === "yes";
+  // AI-95 is confirmed ONLY when explicitly listed in fuels_now or driver detail.
+  // Unconfirmed stations (e.g. status: 'yes' with empty fuels_now & empty detail like Geroya Popova 58V) must NOT show 95.
+  const has95Explicit = has95InFuelsNow || has95InDetail;
+  const has95Plus = has95PlusInFuelsNow || has95PlusInDetail;
+
+  if (!has95Explicit) {
+    return { state: "none", has95: false, has95Plus: false };
+  }
 
   let state: "available" | "queue" = "available";
   const queueTraffic = formatQueueTrafficLight(s.detail);
@@ -165,7 +174,7 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   } else if (/(?:большая|длинная|огромная)\s+очеред/i.test(detail)) {
     state = "queue";
   }
-  return { state, has95, has95Plus };
+  return { state, has95: true, has95Plus };
 }
 
 export function isQueueStation(s: Partial<Station>): boolean {

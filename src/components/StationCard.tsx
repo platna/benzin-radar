@@ -87,7 +87,16 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   }
 
   // Remove queue and limit duplicates from the bottom fuel types row
-  const sanitizedDetail = cleanDetailFuels(station.detail);
+  const cleanedDetail = cleanDetailFuels(station.detail);
+  const sanitizedDetail =
+    cleanedDetail ||
+    (station.fuels_now
+      ? station.fuels_now
+          .split(',')
+          .map((f) => f.trim())
+          .filter(Boolean)
+          .join(', ')
+      : null);
 
   return (
     <article className="bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 shadow-lg transition-all duration-200">
@@ -174,11 +183,6 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] sm:text-xs shrink-0 bg-amber-500/10 text-amber-300 border-amber-500/30">
               <span>🟡</span>
               <span className="font-medium">Очередь</span>
-            </div>
-          ) : fuelInfo.state === 'available' ? (
-            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] sm:text-xs shrink-0 bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
-              <span>🟢</span>
-              <span className="font-medium">Без очереди</span>
             </div>
           ) : (
             <div className="inline-flex items-center gap-1 text-slate-500 text-[11px] sm:text-xs shrink-0">

@@ -94,6 +94,17 @@ test('check95Fuel correctly determines fuel availability and queue', () => {
   // svc: only (automated payment terminal ping without driver confirmation)
   const res5 = check95Fuel({ status: 'yes', svc: 'only', confidence_base: 0.35 });
   assert.equal(res5.state, 'none');
+
+  // Station without explicit 95 confirmation (e.g. Geroya Popova 58V with empty fuels_now and empty detail)
+  const popov58v = check95Fuel({
+    brand: 'Газпромнефть',
+    addr: 'ул Героя Попова, 58В',
+    status: 'yes',
+    detail: '',
+    fuels_now: ''
+  });
+  assert.equal(popov58v.state, 'none');
+  assert.equal(popov58v.has95, false);
 });
 
 test('isQueueStation accurately identifies heavy queues and rejects green traffic lights', () => {
