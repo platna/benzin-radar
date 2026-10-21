@@ -65,7 +65,8 @@ app.get('/api/stations', async (req, res) => {
     const timeout = setTimeout(() => controller.abort(), 7000);
 
     // Bypass CDN edge caching with dynamic timestamp
-    const apiRes = await fetch(`${GDEBENZ_URL}&_t=${now}`, {
+    const sep = GDEBENZ_URL.includes('?') ? '&' : '?';
+    const apiRes = await fetch(`${GDEBENZ_URL}${sep}_t=${now}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
         'Accept': 'application/json'
@@ -80,22 +81,32 @@ app.get('/api/stations', async (req, res) => {
       const data = await apiRes.json();
       let stations = Array.isArray(data) ? data : data.stations || [];
       if (stations.length > 0) {
-        // Find target stations to enrich with live comment data (exact confidenceBase, prices, updated)
+        // Find target stations to enrich with live comment data and exact recent driver marks
         const targetStations = stations.filter(isTargetStation);
         
         await Promise.allSettled(
-          targetStations.slice(0, 30).map(async (st: any) => {
+          targetStations.slice(0, 35).map(async (st: any) => {
             const id = st.osm_id || st.id;
             if (!id) return;
             try {
-              const cRes = await fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}`, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-                  'Accept': 'application/json'
-                },
-                signal: AbortSignal.timeout(2500)
-              });
-              if (cRes.ok) {
+              const [cRes, rRes] = await Promise.all([
+                fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}`, {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                    'Accept': 'application/json'
+                  },
+                  signal: AbortSignal.timeout(3000)
+                }).catch(() => null),
+                fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}/recent?limit=3`, {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                    'Accept': 'application/json'
+                  },
+                  signal: AbortSignal.timeout(3000)
+                }).catch(() => null)
+              ]);
+
+              if (cRes && cRes.ok) {
                 const comment = await cRes.json();
                 if (comment.confidenceBase !== undefined && comment.confidenceBase !== null) {
                   st.confidence_base = comment.confidenceBase;
@@ -135,8 +146,28 @@ app.get('/api/stations', async (req, res) => {
                 }
                 st.last_at = st.last_driver_at || st.last_auto_at || st.last_at;
               }
+
+              // Apply the exact latest driver mark from /recent
+              if (rRes && rRes.ok) {
+                const recent = await rRes.json();
+                if (Array.isArray(recent) && recent.length > 0) {
+                  const lastMark = recent[0];
+                  if (lastMark) {
+                    if (lastMark.detail && lastMark.detail.trim().length > 0) {
+                      st.detail = lastMark.detail.trim();
+                    }
+                    if (lastMark.status) {
+                      st.status = lastMark.status;
+                    }
+                    if (lastMark.created_at) {
+                      st.last_driver_at = lastMark.created_at;
+                      st.last_at = lastMark.created_at;
+                    }
+                  }
+                }
+              }
             } catch {
-              // Ignore single comment failure, base station info is already present
+              // Ignore single station failure
             }
           })
         );
@@ -177,21 +208,55 @@ app.get('/api/stations', async (req, res) => {
 
   if (defaultFeed) {
     const rawStations = Array.isArray(defaultFeed) ? defaultFeed : defaultFeed.stations || [];
-    // Adjust timestamps relative to now so fallback does not artificially degrade confidence to 70%
-    const nowIso = new Date(now - 15 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
-    const stations = rawStations.map((s: any) => ({
-      ...s,
-      last_at: s.last_at ? nowIso : s.last_at
-    }));
-
     return res.json({
-      stations,
+      stations: rawStations,
       source: 'authentic-feed',
       timestamp: new Date().toISOString()
     });
   }
 
   res.status(502).json({ error: 'Unable to load fuel data' });
+});
+
+// Proxy routes for individual station comments and recent driver marks
+app.get('/api/comments/:id/recent', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const apiRes = await fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}/recent?limit=5`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      return res.json(data);
+    }
+    return res.status(apiRes.status).json({ error: 'Gdebenz returned ' + apiRes.status });
+  } catch (err: any) {
+    return res.status(502).json({ error: err.message });
+  }
+});
+
+app.get('/api/comments/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const apiRes = await fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      return res.json(data);
+    }
+    return res.status(apiRes.status).json({ error: 'Gdebenz returned ' + apiRes.status });
+  } catch (err: any) {
+    return res.status(502).json({ error: err.message });
+  }
 });
 
 async function startServer() {

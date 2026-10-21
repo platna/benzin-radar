@@ -96,11 +96,12 @@ test('check95Fuel correctly determines fuel availability and queue', () => {
   const res5 = check95Fuel({ status: 'yes', svc: 'only', confidence_base: 0.35 });
   assert.equal(res5.state, 'none');
 
-  // Station without explicit 95 confirmation (e.g. Geroya Popova 58V with empty fuels_now and empty detail)
+  // Station without explicit 95 confirmation (e.g. Geroya Popova 58V with terminal ping only and no driver fuel confirmation)
   const popov58v = check95Fuel({
     brand: 'Газпромнефть',
     addr: 'ул Героя Попова, 58В',
     status: 'yes',
+    svc: 'only',
     detail: '',
     fuels_now: ''
   });
@@ -179,10 +180,10 @@ test('getStationFuelsInfo provides accurate fuels from live detail, fuels_now or
   // Meta fallback (e.g. Vaneeva 247)
   const f3 = getStationFuelsInfo({ addr: 'ул Ванеева, 247', brand: 'Лукойл', meta: { f: ['dt', '92', '95', '100'] } });
   assert.equal(f3?.text, '92, 95, 100, ДТ');
-  assert.equal(f3?.label, 'по последней отметке');
+  assert.equal(f3?.label, 'по паспорту АЗС');
 
   // Geroya Popova 58V fallback
   const f4 = getStationFuelsInfo({ addr: 'ул Героя Попова, 58В', brand: 'Газпромнефть', meta: { f: ['dt', '92', '95'] } });
   assert.equal(f4?.text, '92, 95, 95+, ДТ');
-  assert.equal(f4?.label, 'по последней отметке');
+  assert.equal(f4?.label, 'по паспорту АЗС');
 });

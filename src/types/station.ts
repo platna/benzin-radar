@@ -10,7 +10,7 @@ export interface Station {
   latitude?: number;
   longitude?: number;
   lng?: number;
-  status?: string; // "available" | "queue" | "warning" | "no" | "empty" | "none"
+  status?: string | null; // "available" | "queue" | "warning" | "no" | "empty" | "none" | null
   fuels_now?: string;
   detail?: string;
   confidence_base?: number; // e.g. 0.90 for 90%

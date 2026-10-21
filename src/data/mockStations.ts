@@ -1,6 +1,5 @@
-import type { Station } from "../utils/fuelLogic.ts";
+import type { Station } from '../types/station.ts';
 
-// Authentic snapshot of all 130 stations directly from gdebenz.ru
 export const FALLBACK_STATIONS: Station[] = [
   {
     "osm_id": "551531303",
@@ -25,12 +24,12 @@ export const FALLBACK_STATIONS: Station[] = [
     "lat": 56.2756556,
     "lon": 43.9054865,
     "distance_km": 10.1,
-    "status": "no",
-    "detail": "",
+    "status": null,
+    "detail": "92, 95, 95+, ДТ",
     "fuels_now": "",
-    "confirmations": 1,
-    "last_at": "2026-10-18 10:40:20",
-    "confidence_base": 0.3729,
+    "confirmations": 0,
+    "last_at": "2026-10-20 12:08:43",
+    "confidence_base": 0,
     "meta": {
       "f": [
         "dt",
@@ -93,11 +92,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.0311845,
     "distance_km": 3,
     "status": "yes",
-    "detail": "92, 95, 100, ДТ",
-    "fuels_now": "92,95,100,ДТ",
-    "confirmations": 6,
-    "last_at": "2026-10-18 10:40:46",
-    "confidence_base": 0.9,
+    "detail": "92, 95",
+    "fuels_now": "92,95",
+    "confirmations": 1,
+    "last_at": "2026-10-20 20:45:05",
+    "confidence_base": 0,
     "meta": {
       "f": [
         "dt",
@@ -485,11 +484,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 43.9830621,
     "distance_km": 6.1,
     "status": "yes",
-    "detail": "92, ДТ",
-    "fuels_now": "",
+    "detail": "92, 95, ДТ",
+    "fuels_now": "92,95,ДТ",
     "confirmations": 4,
-    "last_at": "2026-10-18 10:09:52",
-    "confidence_base": 0.9,
+    "last_at": "2026-10-21 05:34:48",
+    "confidence_base": 0.85,
     "meta": {
       "f": [
         "dt",
@@ -507,11 +506,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.048789,
     "distance_km": 6.1,
     "status": "yes",
-    "detail": "",
-    "fuels_now": "",
-    "confirmations": 1,
-    "last_at": "2026-10-18 09:50:59",
-    "confidence_base": 0.35,
+    "detail": "ДТ",
+    "fuels_now": "ДТ",
+    "confirmations": 2,
+    "last_at": "2026-10-19 07:16:39",
+    "confidence_base": 0.8807,
     "meta": {
       "f": [
         "dt",
@@ -519,8 +518,7 @@ export const FALLBACK_STATIONS: Station[] = [
         "95",
         "100"
       ]
-    },
-    "svc": "only"
+    }
   },
   {
     "osm_id": "w398360170",
@@ -621,10 +619,10 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 43.9803932,
     "distance_km": 7,
     "status": "yes",
-    "detail": "92, 95, 95+, ДТ",
-    "fuels_now": "",
-    "confirmations": 3,
-    "last_at": "2026-10-18 10:39:20",
+    "detail": "92, 95, ДТ",
+    "fuels_now": "92,95,ДТ",
+    "confirmations": 4,
+    "last_at": "2026-10-21 06:11:44",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -770,11 +768,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 43.9330126,
     "distance_km": 7.3,
     "status": "yes",
-    "detail": "95, 95+, ДТ · Лимит 40 л",
-    "fuels_now": "92,95,95+,ДТ",
-    "confirmations": 5,
-    "last_at": "2026-10-18 10:47:00",
-    "confidence_base": 0.9,
+    "detail": "92, 95",
+    "fuels_now": "92,95",
+    "confirmations": 1,
+    "last_at": "2026-10-21 03:32:10",
+    "confidence_base": 0.35,
     "meta": {
       "f": [
         "dt",
@@ -1309,11 +1307,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.0240853,
     "distance_km": 9.8,
     "status": "yes",
-    "detail": "92, 95+",
-    "fuels_now": "",
+    "detail": "95",
+    "fuels_now": "95",
     "confirmations": 3,
-    "last_at": "2026-10-18 10:41:26",
-    "confidence_base": 0.8795,
+    "last_at": "2026-10-21 05:48:00",
+    "confidence_base": 0.9,
     "meta": {
       "f": [
         "dt",
@@ -1628,12 +1626,12 @@ export const FALLBACK_STATIONS: Station[] = [
     "lat": 56.2429713,
     "lon": 43.9733225,
     "distance_km": 12,
-    "status": "yes",
-    "detail": "92, 95, 95+",
-    "fuels_now": "92,95,95+",
-    "confirmations": 4,
-    "last_at": "2026-10-18 11:08:27",
-    "confidence_base": 0.9,
+    "status": null,
+    "detail": "95",
+    "fuels_now": "95",
+    "confirmations": 0,
+    "last_at": "2026-10-20 18:14:27",
+    "confidence_base": 0,
     "meta": {
       "f": [
         "dt",
@@ -1798,11 +1796,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.02177201852994,
     "distance_km": 12.7,
     "status": "yes",
-    "detail": "92, 95, 95+, ДТ",
-    "fuels_now": "",
-    "confirmations": 2,
-    "last_at": "2026-10-18 09:15:23",
-    "confidence_base": 0.8323
+    "detail": "92",
+    "fuels_now": "92",
+    "confirmations": 1,
+    "last_at": "2026-10-21 03:27:10",
+    "confidence_base": 0.35
   },
   {
     "osm_id": "1326646466",
@@ -2213,11 +2211,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.10564512014389,
     "distance_km": 16.5,
     "status": "yes",
-    "detail": "92, 95, 95+, ДТ",
-    "fuels_now": "",
+    "detail": "92, 95, ДТ",
+    "fuels_now": "92,95,ДТ",
     "confirmations": 2,
-    "last_at": "2026-10-18 08:12:19",
-    "confidence_base": 0.7104
+    "last_at": "2026-10-21 05:26:50",
+    "confidence_base": 0.8
   },
   {
     "osm_id": "5820252560",
@@ -2264,12 +2262,12 @@ export const FALLBACK_STATIONS: Station[] = [
     "lat": 56.207264,
     "lon": 44.087379,
     "distance_km": 16.8,
-    "status": "yes",
-    "detail": "",
-    "fuels_now": "",
-    "confirmations": 1,
-    "last_at": "2026-10-18 04:23:34",
-    "confidence_base": 0.35,
+    "status": null,
+    "detail": "100",
+    "fuels_now": "100",
+    "confirmations": 0,
+    "last_at": "2026-10-20 17:43:54",
+    "confidence_base": 0,
     "meta": {
       "f": [
         "dt",
@@ -2310,10 +2308,10 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.09059524536132,
     "distance_km": 16.9,
     "status": "yes",
-    "detail": "",
-    "fuels_now": "",
+    "detail": "92, 95",
+    "fuels_now": "92,95",
     "confirmations": 1,
-    "last_at": "2026-10-18 10:22:17",
+    "last_at": "2026-10-21 03:03:57",
     "confidence_base": 0.35,
     "meta": {
       "f": [
@@ -2321,8 +2319,7 @@ export const FALLBACK_STATIONS: Station[] = [
         "92",
         "95"
       ]
-    },
-    "svc": "only"
+    }
   },
   {
     "osm_id": "9644429597",

@@ -1,0 +1,30 @@
+{
+  "id": "/",
+  "name": "Бензин Радар НН",
+  "short_name": "Бензин Радар",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "description": "Мониторинг очередей и наличия бензина АИ-95 на АЗС Нижнего Новгорода",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933884.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

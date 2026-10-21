@@ -61,12 +61,9 @@ export default function App() {
       }
     };
 
-    // 1. Primary: Direct fetch from custom Google Script API endpoint
+    // 1. Primary: fetch from our enriched local proxy endpoint (/api/stations) which includes recent driver marks
     try {
-      const res = await fetch(GOOGLE_SCRIPT_API_URL, {
-        redirect: 'follow',
-        signal: AbortSignal.timeout(8000)
-      });
+      const res = await fetch('/api/stations', { signal: AbortSignal.timeout(6000) });
       if (res.ok) {
         const json = await res.json();
         const list = Array.isArray(json) ? json : json.stations;
@@ -83,13 +80,16 @@ export default function App() {
         }
       }
     } catch (e) {
-      console.warn('Google Script API direct fetch failed, trying local proxy:', e);
+      console.warn('Local proxy /api/stations failed, trying direct Google Script API:', e);
     }
 
-    // 2. Secondary fallback: local / Netlify proxy if offline or timed out
+    // 2. Secondary fallback: direct Google Script API
     if (!fetched) {
       try {
-        const res = await fetch('/api/stations', { signal: AbortSignal.timeout(5000) });
+        const res = await fetch(GOOGLE_SCRIPT_API_URL, {
+          redirect: 'follow',
+          signal: AbortSignal.timeout(8000)
+        });
         if (res.ok) {
           const json = await res.json();
           const list = Array.isArray(json) ? json : json.stations;
@@ -105,8 +105,8 @@ export default function App() {
             }
           }
         }
-      } catch {
-        // Fallback
+      } catch (e) {
+        console.warn('Google Script API fallback failed:', e);
       }
     }
 
@@ -159,9 +159,12 @@ export default function App() {
           (s.addr && canon.addr && s.addr.trim().toLowerCase() === canon.addr.trim().toLowerCase())
       );
       if (!live) return canon;
+      const hasDriverFuel = Boolean((live.detail && live.detail.trim().length > 0) || (live.fuels_now && live.fuels_now.trim().length > 0));
+      const effectiveSvc = hasDriverFuel ? null : (live.svc !== undefined ? live.svc : null);
       return {
         ...canon,
         ...live,
+        svc: effectiveSvc,
         name: live.name || canon.name,
         brand: live.brand || canon.brand,
         addr: live.addr || canon.addr,
@@ -180,9 +183,12 @@ export default function App() {
           (s.addr && canon.addr && s.addr.trim().toLowerCase() === canon.addr.trim().toLowerCase())
       );
       if (!live) return canon;
+      const hasDriverFuel = Boolean((live.detail && live.detail.trim().length > 0) || (live.fuels_now && live.fuels_now.trim().length > 0));
+      const effectiveSvc = hasDriverFuel ? null : (live.svc !== undefined ? live.svc : null);
       return {
         ...canon,
         ...live,
+        svc: effectiveSvc,
         name: live.name || canon.name,
         brand: live.brand || canon.brand,
         addr: live.addr || canon.addr,

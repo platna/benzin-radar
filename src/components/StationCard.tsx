@@ -5,6 +5,8 @@ import {
   isQueueStation,
   formatQueueTrafficLight,
   parseLimit,
+  parseBreak,
+  cleanDetailFuels,
   getStationFuelsInfo,
   getFreshnessText,
   getBrandInfo,
@@ -17,7 +19,8 @@ import {
   Award,
   Clock,
   Fuel,
-  AlertTriangle
+  AlertTriangle,
+  PauseCircle
 } from 'lucide-react';
 
 interface StationCardProps {
@@ -29,9 +32,13 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   const fuelInfo = check95Fuel(station);
   const queueTraffic = formatQueueTrafficLight(station.detail);
   const limit = parseLimit(station.detail);
+  const breakInfo = parseBreak(station.detail);
 
-  const isSvcOnly = station.svc === 'only' || Boolean(station.svc_only);
-  const driverTime = station.last_driver_at || (isSvcOnly ? null : station.last_at);
+  const hasDriverFuelDetail = Boolean(station.detail && cleanDetailFuels(station.detail));
+  const hasDriverFuelsNow = Boolean(station.fuels_now && station.fuels_now.trim().length > 0);
+  const isSvcOnly = (station.svc === 'only' || Boolean(station.svc_only)) && !hasDriverFuelDetail && !hasDriverFuelsNow;
+
+  const driverTime = station.last_driver_at || (!isSvcOnly ? station.last_at : null);
   // If svc === 'only', last_at is the automated transaction terminal timestamp
   const autoTime = station.last_auto_at || (isSvcOnly ? station.last_at : null);
 
@@ -62,10 +69,18 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   let statusText = '';
   let statusIcon = null;
 
-  if (fuelInfo.state === 'none') {
+  if (isSvcOnly) {
+    statusBannerClass = 'bg-teal-500/15 text-teal-300 border-teal-500/40';
+    statusText = 'ТОЛЬКО ТЕРМИНАЛ';
+    statusIcon = <span className="w-2 h-2 rounded-full bg-teal-400" />;
+  } else if (!station.status) {
+    statusBannerClass = 'bg-slate-800/80 text-slate-400 border-slate-700/60';
+    statusText = 'ПОКА НЕТ ОТМЕТОК';
+    statusIcon = <span className="w-2 h-2 rounded-full bg-slate-500" />;
+  } else if (fuelInfo.state === 'none') {
     statusBannerClass = 'bg-slate-800/80 text-slate-400 border-slate-700/60';
     statusText = 'НЕТ АИ-95';
-    statusIcon = <span className="w-2 h-2 rounded-full bg-slate-500" />;
+    statusIcon = <span className="w-2 h-2 rounded-full bg-rose-500" />;
   } else if (isHeavyQueue) {
     statusBannerClass = 'bg-amber-500/15 text-amber-300 border-amber-500/40';
     statusText = 'АИ-95 · ОЧЕРЕДЬ';
@@ -143,6 +158,10 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
           <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             АИ-95
           </span>
+        ) : !station.status ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-400 border border-slate-700/80">
+            АИ-95: нет отметок
+          </span>
         ) : (
           <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-400 border border-slate-700/80">
             АИ-95: нет
@@ -169,7 +188,7 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
 
       {/* Middle Row: Traffic Light Queue & Limits */}
       <div className="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/90 mb-3 space-y-2 text-xs">
-        <div className="flex items-center justify-between gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
           {/* Queue traffic light */}
           {queueTraffic ? (
             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] sm:text-xs shrink-0 ${queueBadgeClass}`}>
@@ -188,22 +207,37 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
             </div>
           )}
 
-          {/* Time Freshness: Driver mark vs Auto Signal (always showing recency) */}
-          <div className="text-[10px] sm:text-[11px] text-right ml-auto flex flex-col items-end shrink-0 leading-tight">
+          {/* Time Freshness: Driver mark vs Auto Signal with exact Moscow time */}
+          <div className="text-[10px] sm:text-[11px] text-right ml-auto flex flex-col items-end shrink-0 max-w-[65%] leading-tight">
             {driverTime && !isSvcOnly ? (
               <div className="flex items-center gap-1 text-slate-300">
                 <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                <span>Водитель: {driverFreshness.diffText}</span>
+                <span>
+                  Водитель: {driverFreshness.diffText}
+                  {driverFreshness.timeMsk !== '--:--' && (
+                    <span className="text-slate-400 font-normal ml-1">({driverFreshness.timeMsk})</span>
+                  )}
+                </span>
               </div>
             ) : hasAutoSignal && autoTime ? (
               <div className="flex items-center gap-1 text-teal-400 font-medium">
                 <Clock className="w-2.5 h-2.5 text-teal-400 shrink-0" />
-                <span>⚡ Заправка работала: {autoFreshness.diffText}</span>
+                <span>
+                  ⚡ Заправка работала: {autoFreshness.diffText}
+                  {autoFreshness.timeMsk !== '--:--' && (
+                    <span className="text-teal-400/80 font-normal ml-1">({autoFreshness.timeMsk})</span>
+                  )}
+                </span>
               </div>
             ) : (
               <div className="flex items-center gap-1 text-slate-400">
                 <Clock className="w-2.5 h-2.5 text-slate-500 shrink-0" />
-                <span>{generalFreshness.diffText}</span>
+                <span>
+                  {generalFreshness.diffText}
+                  {generalFreshness.timeMsk !== '--:--' && (
+                    <span className="text-slate-500 font-normal ml-1">({generalFreshness.timeMsk})</span>
+                  )}
+                </span>
               </div>
             )}
             {hasAutoSignal && autoTime && driverTime && !isSvcOnly && (
@@ -211,7 +245,12 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
                 className="text-[10px] text-teal-400/90 flex items-center gap-0.5 mt-0.5 font-medium"
                 title="На этой заправке прошла оплата (автоматический сигнал), наличие АИ-95 не гарантировано водителем"
               >
-                <span>⚡ Заправка работала: {autoFreshness.diffText}</span>
+                <span>
+                  ⚡ Заправка работала: {autoFreshness.diffText}
+                  {autoFreshness.timeMsk !== '--:--' && (
+                    <span className="text-teal-400/80 font-normal ml-0.5">({autoFreshness.timeMsk})</span>
+                  )}
+                </span>
               </span>
             )}
             {hasAutoSignal && !driverTime && (
@@ -222,11 +261,43 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
           </div>
         </div>
 
+        {/* Break / Unloading alert badge if driver noted a pause */}
+        {breakInfo && (
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-medium">
+            <PauseCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+            <span>{breakInfo}</span>
+          </div>
+        )}
+
+        {/* Break notice text */}
+        {breakInfo && (
+          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] leading-snug">
+            <span className="shrink-0 mt-0.5">⏸️</span>
+            <span>Водитель отметил перерыв (слив бензовоза). Во время слива отпуск бензина приостановлен.</span>
+          </div>
+        )}
+
+        {/* Driver reported only other fuels (e.g. diesel only on Teboil Suslova 21) */}
+        {!isSvcOnly && !breakInfo && fuelInfo.state === 'none' && fuelsInfo.source === 'live' && (
+          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/25 text-sky-300 text-[11px] leading-snug">
+            <span className="shrink-0 mt-0.5">ℹ️</span>
+            <span>По отметкам водителей — в наличии только {fuelsInfo.text}. Бензина АИ-95 нет.</span>
+          </div>
+        )}
+
         {/* Svc Only Warning: Unconfirmed fuel notice */}
         {isSvcOnly && (
           <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300/90 text-[11px] leading-snug">
             <span className="shrink-0 mt-0.5">ℹ️</span>
             <span>Только автосигнал оплаты терминала. Наличие АИ-95 водителями не подтверждалось.</span>
+          </div>
+        )}
+
+        {/* Unconfirmed / No marks notice (Photo 11: "Пока нет отметок") */}
+        {!isSvcOnly && !breakInfo && !station.status && (
+          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-300 text-[11px] leading-snug">
+            <span className="shrink-0 mt-0.5">⚪</span>
+            <span>Пока нет свежих отметок водителей. Станьте первым, кто сообщит ситуацию на ГдеБЕНЗ.</span>
           </div>
         )}
 
@@ -240,16 +311,31 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
 
         {/* Fuel types row: Always visible, clearly rendered beneath any notices */}
         <div className="border-t border-slate-800/80 pt-2 mt-2 flex items-center justify-between text-xs text-slate-300">
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="font-semibold text-slate-200 tracking-wide truncate">
               {fuelInfo.state === 'none' && fuelsInfo.source === 'live' ? (
                 <span>
-                  В наличии: <span className="text-white">{fuelsInfo.text}</span>{' '}
+                  <span className="text-slate-400 font-normal">В наличии: </span>
+                  <span className="text-white">{fuelsInfo.text}</span>{' '}
                   <span className="text-rose-400 font-normal">· АИ-95 нет</span>
                 </span>
+              ) : fuelInfo.state === 'none' && !station.status ? (
+                <span>
+                  <span className="text-slate-400 font-normal">Виды топлива: </span>
+                  <span className="text-slate-200">{fuelsInfo.text}</span>
+                </span>
+              ) : fuelInfo.state === 'none' ? (
+                <span>
+                  <span className="text-slate-400 font-normal">Виды топлива: </span>
+                  <span className="text-slate-200">{fuelsInfo.text}</span>
+                  <span className="text-rose-400 font-normal ml-1">· АИ-95 нет</span>
+                </span>
               ) : (
-                <span>{fuelsInfo.text}</span>
+                <span>
+                  <span className="text-slate-400 font-normal">В наличии: </span>
+                  <span className="text-white">{fuelsInfo.text}</span>
+                </span>
               )}
             </span>
           </div>

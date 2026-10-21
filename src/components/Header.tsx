@@ -1,5 +1,6 @@
 import React from 'react';
 import { Fuel, RotateCw, Radio, Sparkles } from 'lucide-react';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
   lastUpdatedTime: string;
@@ -58,12 +59,14 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <PWAInstallButton />
+
           <button
             type="button"
             onClick={onOpenInfo}
-            aria-label="О проекте"
+            aria-label="Инструкция и справка"
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 active:scale-95 transition-all"
-            title="О проекте и источниках"
+            title="Инструкция и справка"
           >
             <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
           </button>
