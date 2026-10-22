@@ -8,7 +8,9 @@ import {
   Zap,
   AlertTriangle,
   PauseCircle,
-  ExternalLink
+  ExternalLink,
+  RefreshCw,
+  MapPin
 } from 'lucide-react';
 
 interface InfoModalProps {
@@ -20,10 +22,17 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl text-slate-200 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4 sticky top-0 bg-slate-900/95 backdrop-blur-md z-10">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl text-slate-200 max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* Pinned Header */}
+        <div className="shrink-0 flex items-center justify-between px-4 py-3.5 sm:px-5 sm:py-4 border-b border-slate-800 bg-slate-900/95 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
               <Fuel className="w-5 h-5" />
@@ -37,166 +46,182 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose }) => {
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+            className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4 text-xs leading-relaxed">
-          {/* Section 1: Notifications & Fuel Badges (Photos 3-4) */}
+        {/* Scrollable Body with custom sleek scrollbar */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-4 space-y-4 text-xs leading-relaxed [scrollbar-width:thin] [scrollbar-color:#334155_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-700/70 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+          {/* Section 1: Main Status Badges */}
           <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5">
             <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
-              Что означают сообщения на карточках АЗС
+              Статусы карточек АЗС
             </h3>
 
-            {/* Sub-item: Only other fuels (Photo 3) */}
-            <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-200 space-y-1">
-              <div className="font-bold text-sky-300 flex items-center gap-1">
-                <span>ℹ️ По отметкам водителей — в наличии только 92 (или ДТ)</span>
+            {/* Badge 1: 95 Available */}
+            <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 space-y-1">
+              <div className="font-bold text-emerald-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>🟢 АИ-95 В НАЛИЧИИ</span>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
-                Реальный водитель на месте подтвердил, что <b>АИ-95 закончился</b>, но на колонках есть другие виды топлива (например, только АИ-92 или только дизель).
+                Подтверждено последней отметкой водителя на месте. В карточке перечислены все доступные виды топлива (92, 95, 95+, 100, ДТ) и наличие лимита (напр. «Лимит 30 л» или «Без ограничений»).
               </p>
             </div>
 
-            {/* Sub-item: Terminal auto-signal (Photo 4) */}
+            {/* Badge 2: 95 Queue */}
             <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-200 space-y-1">
-              <div className="font-bold text-amber-300 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span>Только автосигнал оплаты терминала</span>
+              <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>🟡 АИ-95 · ОЧЕРЕДЬ (15–30 мин)</span>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
-                На автоматической АЗС или через платежный терминал прошла оплата — заправка работала. Но живые водители не отправляли подтверждение именно по АИ-95, поэтому гарантии наличия нет.
+                Бензин в наличии, но на заправке скопилась очередь от 5 до 15+ машин. Рекомендуется закладывать дополнительное время.
               </p>
             </div>
 
-            {/* Sub-item: Break / Fuel truck unloading (Photo 5) */}
+            {/* Badge 3: Only other fuels / No 95 */}
+            <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-200 space-y-1">
+              <div className="font-bold text-rose-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                <span>🔴 НЕТ АИ-95 (или топлива нет)</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Бензин АИ-95 закончился. Если на АЗС остались другие виды топлива (например, АИ-92 или ДТ), это четко указано в строке «В наличии: 92, ДТ».
+              </p>
+            </div>
+
+            {/* Badge 4: Break / Fuel truck unloading */}
             <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-200 space-y-1">
-              <div className="font-bold text-amber-300 flex items-center gap-1">
+              <div className="font-bold text-amber-300 flex items-center gap-1.5">
                 <PauseCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>⏸ Перерыв до 1 ч / Слив бензовоза</span>
+                <span>⏸ ПЕРЕРЫВ ДО 1 Ч / СЛИВ БЕНЗОВОЗА</span>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
-                На АЗС прибыл бензовоз для пополнения резервуаров или объявлен технический перерыв. В это время отпуск топлива временно приостановлен.
+                На АЗС прибыл бензовоз для пополнения резервуаров или идет технический перерыв/пересменка. Отпуск топлива временно приостановлен.
               </p>
             </div>
 
-            {/* Sub-item: No fresh marks yet */}
-            <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-200 space-y-1">
-              <div className="font-bold text-slate-300 flex items-center gap-1">
-                <span>⚪ Пока нет отметок / Данные устарели</span>
+            {/* Badge 5: Terminal auto-signal */}
+            <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-200 space-y-1">
+              <div className="font-bold text-cyan-300 flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>⚡ ТОЛЬКО ТЕРМИНАЛ / АВТОМАТ</span>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
-                За последние 8–12 часов свежих отметок водителей по этой заправке не поступало, поэтому наличие АИ-95 неизвестно, пока кто-то не оставит отметку в ГдеБЕНЗ.
+                Автоматическая АЗС (оплата только в терминале на колонке) либо зафиксирован автоматический сигнал работы терминала без детализации марок топлива.
+              </p>
+            </div>
+
+            {/* Badge 6: No fresh marks */}
+            <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-200 space-y-1">
+              <div className="font-bold text-slate-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span>⚪ ПОКА НЕТ СВЕЖИХ ОТМЕТОК</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                За последние 12 часов отметок водителей по этой заправке не поступало, поэтому статус помечен как требующий подтверждения.
               </p>
             </div>
           </div>
 
-          {/* Section 2: Confidence rating % (Photo 5) */}
+          {/* Section 2: How Refresh works */}
           <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
             <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
-              <ShieldCheck className="w-4 h-4 text-sky-400" />
-              Что означает процент уверенности (напр. 90%, 35%, 15%)
+              <RefreshCw className="w-4 h-4 text-emerald-400" />
+              Как работает обновление данных
             </h3>
             <p className="text-slate-300 leading-snug">
-              Это математическая вероятность наличия топлива по алгоритму ГдеБЕНЗ с учетом двух факторов:
+              При нажатии кнопки <b>«Обновить»</b> сервис запрашивает свежие данные напрямую по <b>обоим районам сразу</b> (17 АЗС Нагорной части + 11 АЗС Ленинского района) в обход кэша.
             </p>
-            <ul className="space-y-1 text-slate-300 pl-2">
-              <li>• <b>Количество подтверждений</b>: чем больше независимых водителей отметили заправку, тем выше базовый рейтинг (до 90%).</li>
-              <li>• <b>Время отметки</b>: свежая отметка держит высокий рейтинг. Со временем (через 8–24 часа) рейтинг снижается, отражая вероятность изменения ситуации.</li>
-            </ul>
+            <p className="text-slate-400 leading-snug text-[11px]">
+              Также каждые 5 минут приложение автоматически сверяет данные в фоне и показывает всплывающее уведомление со временем сверки.
+            </p>
           </div>
 
-          {/* Section 3: Exact Time & Freshness (Request 1) */}
+          {/* Section 3: Exact Time & Freshness */}
           <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
             <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
-              <Clock className="w-4 h-4 text-emerald-400" />
+              <Clock className="w-4 h-4 text-sky-400" />
               Время отметки: московское время и давность
             </h3>
             <p className="text-slate-300 leading-snug">
-              В правом углу каждой карточки выводится точное время по Москве (МСК) и сколько времени назад зафиксировано событие:
+              В строке каждой отметки пишется давность и точное время по Москве (МСК), например:
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] mt-1">
-              <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                <span className="text-slate-200 font-semibold block">Водитель: 16:46 (12 мин. назад)</span>
-                <span className="text-slate-400 text-[10px]">Личная отметка водителя через приложение</span>
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-1">
+              <div className="text-slate-200 font-semibold">
+                👤 Водитель: 36 мин. назад (10:07)
               </div>
-              <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                <span className="text-teal-300 font-semibold block">⚡ Заправка работала: 15:30 (1 ч. назад)</span>
-                <span className="text-slate-400 text-[10px]">Автоматический сигнал терминала оплаты</span>
+              <div className="text-slate-400 text-[10px]">
+                Время берется непосредственно из последней зарегистрированной отметки очевидца на сервере ГдеБЕНЗ.
               </div>
             </div>
           </div>
 
-          {/* Section 4: Traffic lights */}
+          {/* Section 4: Confidence rating % */}
           <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
             <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
-              <HelpCircle className="w-4 h-4 text-emerald-400" />
-              Цветовая индикация очередей
+              <ShieldCheck className="w-4 h-4 text-indigo-400" />
+              Что означает процент уверенности (напр. 90%, 50%, 15%)
             </h3>
-            <div className="grid grid-cols-3 gap-2 text-center mt-1">
-              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-                <div className="text-xs sm:text-sm font-bold">🟢 До 15 мин</div>
-                <div className="text-[10px] text-slate-400">Свободно</div>
-              </div>
-              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
-                <div className="text-xs sm:text-sm font-bold">🟡 15–30 мин</div>
-                <div className="text-[10px] text-slate-400">Очередь</div>
-              </div>
-              <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300">
-                <div className="text-xs sm:text-sm font-bold">🔴 1–2 часа</div>
-                <div className="text-[10px] text-slate-400">Большая очередь</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 5: Tracked Stations List */}
-          <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-            <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Точный список ключевых АЗС (28 станций)
-            </h3>
-            <p className="text-slate-400 leading-snug">
-              Приложение непрерывно отслеживает сертифицированные заправки стандартов Евро-5 (К5) двух зон:
+            <p className="text-slate-300 leading-snug">
+              Это математический расчет вероятности актуальности данных:
             </p>
-            <ul className="mt-1.5 space-y-1 text-slate-300 pl-1">
-              <li>• <b>Нагорная часть (17 АЗС)</b>: Лукойл, Teboil и Газпромнефть на ключевых магистралях (Родионова, Гагарина, Ванеева, Казанское ш., Ларина, Сахарова, Тимирязева и др.).</li>
-              <li>• <b>Ленинский район (11 АЗС)</b>: пр. Ленина, Комсомольское ш., Новикова-Прибоя, ул. Героя Попова, Баумана, Голубева и др.</li>
+            <ul className="space-y-1 text-slate-300 pl-2">
+              <li>• <b>90%–95%</b>: свежая отметка (до 1–2 часов), подтвержденная несколькими водителями.</li>
+              <li>• <b>50%–70%</b>: отметка была сделана 3–6 часов назад, ситуация могла частично измениться.</li>
+              <li>• <b>Ниже 30%</b>: отметка старше 8–12 часов, статус требует проверки на месте.</li>
             </ul>
           </div>
 
-          {/* Section 6: Data source & 1-click navigation */}
+          {/* Section 5: Tracked Stations List */}
+          <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+            <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
+              <MapPin className="w-4 h-4 text-emerald-400" />
+              Список отслеживаемых станций (28 АЗС)
+            </h3>
+            <div className="space-y-2 text-[11px]">
+              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <span className="font-bold text-emerald-400 block mb-0.5">Нагорная часть (17 АЗС):</span>
+                <span className="text-slate-300">
+                  Лукойл (Родионова, Гагарина, Ванеева, Казанское ш., Ларина, Бекетова, Тимирязева, Бринского), Teboil (Родионова, Казанское ш., Ковалихинская, Сахарова, Ларина) и Газпромнефть (Казанское ш., Деловая, Ларина).
+                </span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <span className="font-bold text-sky-400 block mb-0.5">Ленинский район (11 АЗС):</span>
+                <span className="text-slate-300">
+                  Лукойл (пр. Ленина 82Б, 11Б, 17, 43б; Комсомольское ш. 7А; Новикова-Прибоя 33; ул. Г. Попова 42; Баумана 78; Голубева 3А; Школьная 70А/Б).
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 6: Source & Navigation */}
           <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
             <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
-              <ExternalLink className="w-4 h-4 text-indigo-400" />
+              <ExternalLink className="w-4 h-4 text-slate-400" />
               Источники данных и навигация
             </h3>
             <p className="text-slate-400 leading-snug">
-              Данные синхронизируются в реальном времени с краудсорсинговой сетью ГдеБЕНЗ. Красная кнопка «Маршрут на авто» в карточке сразу строит маршрут с учетом живых пробок в Яндекс Картах, а кнопки 2ГИС и ГдеБЕНЗ открывают карточки в профильных сервисах.
+              Данные синхронизируются с краудсорсинговой платформой ГдеБЕНЗ. Кнопка «Маршрут на авто» в карточке строит прямой маршрут в Яндекс Картах с учетом пробок, а кнопки 2ГИС и ГдеБЕНЗ открывают карточку станции в соответствующих сервисах.
             </p>
-            <div className="pt-1">
-              <a
-                href="https://gdebenz.ru"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sky-400 hover:underline font-semibold inline-flex items-center gap-1"
-              >
-                Официальный сайт ГдеБЕНЗ →
-              </a>
-            </div>
           </div>
         </div>
 
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full mt-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-md shadow-emerald-950/60 active:scale-[0.99] transition-all"
-        >
-          Понятно
-        </button>
+        {/* Pinned Footer with prominent "Понятно" button */}
+        <div className="shrink-0 px-4 py-3 sm:px-5 sm:py-3.5 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3">
+          <span className="text-[11px] text-slate-400 hidden sm:inline">Бензин Радар НН · Все 28 АЗС</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-semibold text-xs shadow-md shadow-emerald-950/60 transition-all text-center"
+          >
+            Понятно
+          </button>
+        </div>
       </div>
     </div>
   );

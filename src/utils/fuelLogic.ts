@@ -107,9 +107,27 @@ export interface FuelCheckResult {
   has95Plus: boolean;
 }
 
+export function isMarkExpired(s: Partial<Station>): boolean {
+  const timeStr = s.last_driver_at || s.last_at;
+  if (!timeStr) return false;
+  try {
+    const cleanTime = timeStr.replace(' ', 'T') + (/[zZ]|[+\-]\d\d:?\d\d$/.test(timeStr) ? '' : 'Z');
+    const timeMs = new Date(cleanTime).getTime();
+    if (isNaN(timeMs)) return false;
+    return (Date.now() - timeMs) / 3600000 >= 12;
+  } catch {
+    return false;
+  }
+}
+
 export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   const status = (s.status || (s.detail || s.fuels_now ? "yes" : "")).toLowerCase();
   if (!status || status === "no" || status === "empty" || status === "none" || status === "closed") {
+    return { state: "none", has95: false, has95Plus: false };
+  }
+
+  // Mark older than 12 hours is expired (WhereBenz treats it as "Пока нет отметок")
+  if (isMarkExpired(s)) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
@@ -334,13 +352,15 @@ export interface StationFuelsInfo {
 }
 
 export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo {
-  // 1. From live detail (stripping queue and limits) - this is the genuine latest driver mark!
-  const cleanedDetail = cleanDetailFuels(station.detail);
-  if (cleanedDetail && cleanedDetail.length > 0) {
-    return { text: cleanedDetail, source: 'live', label: 'по последней отметке' };
+  const status = (station.status || '').toLowerCase();
+  const detail = (station.detail || '').toLowerCase();
+
+  // If station is confirmed to have NO fuel or is closed
+  if (status === 'no' || status === 'empty' || status === 'none' || /нет топлива|заправка не работает/i.test(detail)) {
+    return { text: 'нет топлива', source: 'live', label: 'по последней отметке' };
   }
 
-  // 2. From live fuels_now (aggregate of recent marks)
+  // 1. From live fuels_now (active driver confirmed checkboxes)
   if (station.fuels_now && station.fuels_now.trim().length > 0) {
     const formatted = station.fuels_now
       .split(',')
@@ -350,6 +370,12 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     if (formatted) {
       return { text: formatted, source: 'live', label: 'по последней отметке' };
     }
+  }
+
+  // 2. From live detail (stripping queue and limits)
+  const cleanedDetail = cleanDetailFuels(station.detail);
+  if (cleanedDetail && cleanedDetail.length > 0) {
+    return { text: cleanedDetail, source: 'live', label: 'по последней отметке' };
   }
 
   // 3. Fallback from station.meta.f (OpenStreetMap / official pumps on this station)

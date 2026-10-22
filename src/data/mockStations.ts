@@ -231,11 +231,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.0020154,
     "distance_km": 4.7,
     "status": "yes",
-    "detail": "92, 95+, ДТ",
-    "fuels_now": "",
-    "confirmations": 4,
-    "last_at": "2026-10-18 09:12:20",
-    "confidence_base": 0.8323,
+    "detail": "95",
+    "fuels_now": "95",
+    "confirmations": 1,
+    "last_at": "2026-10-21 20:27:50",
+    "confidence_base": 0.3729,
     "meta": {
       "f": [
         "dt",
@@ -573,11 +573,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 43.9452975,
     "distance_km": 6.6,
     "status": "yes",
-    "detail": "92, 95, 95+, ДТ · Лимит 30 л",
-    "fuels_now": "",
-    "confirmations": 5,
-    "last_at": "2026-10-18 10:15:03",
-    "confidence_base": 0.9,
+    "detail": "92",
+    "fuels_now": "92",
+    "confirmations": 1,
+    "last_at": "2026-10-22 08:30:00",
+    "confidence_base": 0.85,
     "meta": {
       "f": [
         "dt",
@@ -843,10 +843,10 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 43.9535857,
     "distance_km": 7.4,
     "status": "yes",
-    "detail": "95, ДТ",
-    "fuels_now": "95,ДТ",
-    "confirmations": 5,
-    "last_at": "2026-10-18 10:23:53",
+    "detail": "92, 95, 95+, ДТ",
+    "fuels_now": "92,95,95+,ДТ",
+    "confirmations": 3,
+    "last_at": "2026-10-22 08:05:23",
     "confidence_base": 0.9,
     "meta": {
       "f": [
@@ -1029,11 +1029,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.0346267,
     "distance_km": 8.1,
     "status": "yes",
-    "detail": "92, 95, ДТ",
-    "fuels_now": "92,95,ДТ",
-    "confirmations": 4,
-    "last_at": "2026-10-18 10:35:36",
-    "confidence_base": 0.9,
+    "detail": "92, 95",
+    "fuels_now": "92,95",
+    "confirmations": 2,
+    "last_at": "2026-10-22 06:07:58",
+    "confidence_base": 0.7104,
     "meta": {
       "f": [
         "dt",
@@ -1528,11 +1528,11 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 43.9089826,
     "distance_km": 11.3,
     "status": "yes",
-    "detail": "92",
-    "fuels_now": "92",
-    "confirmations": 8,
-    "last_at": "2026-10-18 10:36:37",
-    "confidence_base": 0.9,
+    "detail": "92, 95, ДТ",
+    "fuels_now": "92,95,ДТ",
+    "confirmations": 1,
+    "last_at": "2026-10-22 07:59:35",
+    "confidence_base": 0.3729,
     "meta": {
       "f": [
         "dt",
@@ -2211,11 +2211,19 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.10564512014389,
     "distance_km": 16.5,
     "status": "yes",
-    "detail": "92, 95, ДТ",
-    "fuels_now": "92,95,ДТ",
-    "confirmations": 2,
-    "last_at": "2026-10-21 05:26:50",
-    "confidence_base": 0.8
+    "detail": "95",
+    "fuels_now": "95",
+    "confirmations": 1,
+    "last_at": "2026-10-21 21:38:52",
+    "confidence_base": 0.35,
+    "meta": {
+      "f": [
+        "dt",
+        "92",
+        "95",
+        "100"
+      ]
+    }
   },
   {
     "osm_id": "5820252560",
@@ -2263,10 +2271,10 @@ export const FALLBACK_STATIONS: Station[] = [
     "lon": 44.087379,
     "distance_km": 16.8,
     "status": null,
-    "detail": "100",
-    "fuels_now": "100",
+    "detail": "",
+    "fuels_now": "",
     "confirmations": 0,
-    "last_at": "2026-10-20 17:43:54",
+    "last_at": "2026-10-21 17:43:54",
     "confidence_base": 0,
     "meta": {
       "f": [
@@ -2274,8 +2282,7 @@ export const FALLBACK_STATIONS: Station[] = [
         "92",
         "95"
       ]
-    },
-    "svc": "only"
+    }
   },
   {
     "osm_id": "1814710925",
@@ -2307,12 +2314,12 @@ export const FALLBACK_STATIONS: Station[] = [
     "lat": 56.20647223986004,
     "lon": 44.09059524536132,
     "distance_km": 16.9,
-    "status": "yes",
-    "detail": "92, 95",
-    "fuels_now": "92,95",
-    "confirmations": 1,
+    "status": null,
+    "detail": "",
+    "fuels_now": "",
+    "confirmations": 0,
     "last_at": "2026-10-21 03:03:57",
-    "confidence_base": 0.35,
+    "confidence_base": 0,
     "meta": {
       "f": [
         "dt",

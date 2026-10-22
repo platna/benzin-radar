@@ -48,11 +48,169 @@ function isTargetStation(s: any): boolean {
   return streets.some(st => addr.includes(st));
 }
 
+// Enrich target stations directly from gdebenz.ru API
+async function enrichTargetStations(stations: any[]): Promise<any[]> {
+  // Ensure all target stations from defaultFeed are present
+  if (defaultFeed && Array.isArray(defaultFeed.stations)) {
+    const existingIds = new Set(stations.map((s: any) => String(s.osm_id || s.id)));
+    for (const fb of defaultFeed.stations) {
+      const id = String(fb.osm_id || fb.id);
+      if (!existingIds.has(id) && isTargetStation(fb)) {
+        stations.push({ ...fb });
+        existingIds.add(id);
+      }
+    }
+  }
+
+  const targetStations = stations.filter(isTargetStation);
+  
+  await Promise.allSettled(
+    targetStations.slice(0, 35).map(async (st: any) => {
+      const id = st.osm_id || st.id;
+      if (!id) return;
+      try {
+        const [cRes, rRes] = await Promise.all([
+          fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}`, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+              'Accept': 'application/json'
+            },
+            signal: AbortSignal.timeout(3500)
+          }).catch(() => null),
+          fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}/recent?limit=3`, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+              'Accept': 'application/json'
+            },
+            signal: AbortSignal.timeout(3500)
+          }).catch(() => null)
+        ]);
+
+        if (cRes && cRes.ok) {
+          const comment = await cRes.json();
+          if (comment.confidenceBase !== undefined && comment.confidenceBase !== null) {
+            st.confidence_base = comment.confidenceBase;
+          }
+          if (comment.confirmations !== undefined) {
+            st.confirmations = comment.confirmations;
+          }
+          if (comment.confirmationsFresh !== undefined) {
+            st.confirmations_fresh = comment.confirmationsFresh;
+          }
+          if (comment.fuelsNow !== undefined) {
+            st.fuels_now = comment.fuelsNow;
+          }
+          if (comment.status === 'queue' || comment.status === 'low') {
+            st.status = comment.status;
+          }
+          if (comment.svc) {
+            st.svc = comment.svc;
+          }
+          if (comment.dtOnly !== undefined) {
+            st.dt_only = comment.dtOnly;
+          }
+          if (comment.detail) {
+            st.detail = comment.detail;
+          }
+
+          const isTerminalOnly = comment.svc === 'only' || st.svc === 'only';
+          if (isTerminalOnly) {
+            st.svc_only = true;
+            st.svc = 'only';
+            st.last_auto_at = comment.updated || st.last_at;
+          } else {
+            st.last_auto_at = null;
+            if (comment.updated) {
+              st.last_driver_at = comment.updated;
+              st.last_at = comment.updated;
+            }
+          }
+        }
+
+        // Apply the exact latest driver mark from /recent (always takes precedence)
+        if (rRes && rRes.ok) {
+          const recent = await rRes.json();
+          if (Array.isArray(recent) && recent.length > 0) {
+            const lastMark = recent[0];
+            if (lastMark) {
+              if (lastMark.detail && lastMark.detail.trim().length > 0) {
+                st.detail = lastMark.detail.trim();
+              }
+              if (lastMark.status) {
+                st.status = lastMark.status;
+              }
+              if (lastMark.created_at) {
+                st.last_driver_at = lastMark.created_at;
+                st.last_at = lastMark.created_at;
+                st.last_auto_at = null;
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignore single station failure
+      }
+    })
+  );
+
+  return stations;
+}
+
+// Function to fetch live station feed with resilient fallbacks
+async function getLiveOrEnrichedStations(): Promise<any[]> {
+  const now = Date.now();
+  let baseStations: any[] = [];
+
+  try {
+    const sep = GDEBENZ_URL.includes('?') ? '&' : '?';
+    const apiRes = await fetch(`${GDEBENZ_URL}${sep}_t=${now}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      const list = Array.isArray(data) ? data : data.stations || [];
+      if (list.length > 0) {
+        baseStations = list;
+      }
+    }
+  } catch (err: any) {
+    // If Google Script is cold or times out, proceed to enrich defaultFeed directly
+    console.info('Google Script feed note (using fast direct Gdebenz enrichment):', err.message || err);
+  }
+
+  // If Google Script did not return data, use defaultFeed as base
+  if (baseStations.length === 0 && defaultFeed) {
+    const raw = Array.isArray(defaultFeed) ? defaultFeed : defaultFeed.stations || [];
+    baseStations = raw.map((s: any) => ({ ...s }));
+  }
+
+  if (baseStations.length > 0) {
+    const enriched = await enrichTargetStations(baseStations);
+    cachedStations = enriched;
+    lastCacheTime = now;
+    return enriched;
+  }
+
+  if (cachedStations) {
+    return cachedStations;
+  }
+
+  throw new Error('Unable to obtain station data');
+}
+
 // Live proxy route with cache busting and station comments enrichment
 app.get('/api/stations', async (req, res) => {
   const now = Date.now();
-  // Cache for 30 seconds to prevent hammering gdebenz while keeping data fresh
-  if (cachedStations && now - lastCacheTime < 30 * 1000) {
+  const isForce = req.query.force === 'true' || req.query.force === '1';
+
+  // Return warm cache if fresh (< 30s) and not an explicit user force refresh
+  if (!isForce && cachedStations && now - lastCacheTime < 30 * 1000) {
     return res.json({
       stations: cachedStations,
       source: 'cache',
@@ -61,161 +219,30 @@ app.get('/api/stations', async (req, res) => {
   }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
-
-    // Bypass CDN edge caching with dynamic timestamp
-    const sep = GDEBENZ_URL.includes('?') ? '&' : '?';
-    const apiRes = await fetch(`${GDEBENZ_URL}${sep}_t=${now}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
-      },
-      redirect: 'follow',
-      signal: controller.signal
-    });
-
-    clearTimeout(timeout);
-
-    if (apiRes.ok) {
-      const data = await apiRes.json();
-      let stations = Array.isArray(data) ? data : data.stations || [];
-      if (stations.length > 0) {
-        // Find target stations to enrich with live comment data and exact recent driver marks
-        const targetStations = stations.filter(isTargetStation);
-        
-        await Promise.allSettled(
-          targetStations.slice(0, 35).map(async (st: any) => {
-            const id = st.osm_id || st.id;
-            if (!id) return;
-            try {
-              const [cRes, rRes] = await Promise.all([
-                fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}`, {
-                  headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-                    'Accept': 'application/json'
-                  },
-                  signal: AbortSignal.timeout(3000)
-                }).catch(() => null),
-                fetch(`https://gdebenz.ru/api/comments/${encodeURIComponent(id)}/recent?limit=3`, {
-                  headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-                    'Accept': 'application/json'
-                  },
-                  signal: AbortSignal.timeout(3000)
-                }).catch(() => null)
-              ]);
-
-              if (cRes && cRes.ok) {
-                const comment = await cRes.json();
-                if (comment.confidenceBase !== undefined && comment.confidenceBase !== null) {
-                  st.confidence_base = comment.confidenceBase;
-                }
-                if (comment.confirmations !== undefined) {
-                  st.confirmations = comment.confirmations;
-                }
-                if (comment.confirmationsFresh !== undefined) {
-                  st.confirmations_fresh = comment.confirmationsFresh;
-                }
-                if (comment.fuelsNow !== undefined) {
-                  st.fuels_now = comment.fuelsNow;
-                }
-                if (comment.status === 'queue' || comment.status === 'low') {
-                  st.status = comment.status;
-                }
-                if (comment.svc) {
-                  st.svc = comment.svc;
-                }
-                if (comment.svc === 'only' || st.svc === 'only') {
-                  st.svc_only = true;
-                }
-                if (comment.dtOnly !== undefined) {
-                  st.dt_only = comment.dtOnly;
-                }
-                if (comment.detail) {
-                  st.detail = comment.detail;
-                }
-
-                if (comment.updated) {
-                  st.last_auto_at = comment.updated;
-                }
-                if (comment.updatedSupport) {
-                  st.last_driver_at = comment.updatedSupport;
-                } else if (!st.svc) {
-                  st.last_driver_at = comment.updated || st.last_at;
-                }
-                st.last_at = st.last_driver_at || st.last_auto_at || st.last_at;
-              }
-
-              // Apply the exact latest driver mark from /recent
-              if (rRes && rRes.ok) {
-                const recent = await rRes.json();
-                if (Array.isArray(recent) && recent.length > 0) {
-                  const lastMark = recent[0];
-                  if (lastMark) {
-                    if (lastMark.detail && lastMark.detail.trim().length > 0) {
-                      st.detail = lastMark.detail.trim();
-                    }
-                    if (lastMark.status) {
-                      st.status = lastMark.status;
-                    }
-                    if (lastMark.created_at) {
-                      st.last_driver_at = lastMark.created_at;
-                      st.last_at = lastMark.created_at;
-                    }
-                  }
-                }
-              }
-            } catch {
-              // Ignore single station failure
-            }
-          })
-        );
-
-        // Ensure all fallback whitelisted stations exist in the station set
-        if (defaultFeed && Array.isArray(defaultFeed.stations)) {
-          const existingIds = new Set(stations.map((s: any) => String(s.osm_id || s.id)));
-          for (const fb of defaultFeed.stations) {
-            const id = String(fb.osm_id || fb.id);
-            if (!existingIds.has(id) && isTargetStation(fb)) {
-              stations.push(fb);
-              existingIds.add(id);
-            }
-          }
-        }
-
-        cachedStations = stations;
-        lastCacheTime = now;
-        return res.json({
-          stations,
-          source: 'live',
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-  } catch (err) {
-    console.warn('Live fetch from gdebenz failed, falling back to cache/feed:', err);
-  }
-
-  // Fallback if live fetch failed
-  if (cachedStations) {
+    const stations = await getLiveOrEnrichedStations();
     return res.json({
-      stations: cachedStations,
-      source: 'stale-cache',
-      timestamp: new Date(lastCacheTime).toISOString()
-    });
-  }
-
-  if (defaultFeed) {
-    const rawStations = Array.isArray(defaultFeed) ? defaultFeed : defaultFeed.stations || [];
-    return res.json({
-      stations: rawStations,
-      source: 'authentic-feed',
+      stations,
+      source: 'live',
       timestamp: new Date().toISOString()
     });
+  } catch (err: any) {
+    if (cachedStations) {
+      return res.json({
+        stations: cachedStations,
+        source: 'stale-cache',
+        timestamp: new Date(lastCacheTime).toISOString()
+      });
+    }
+    if (defaultFeed) {
+      const rawStations = Array.isArray(defaultFeed) ? defaultFeed : defaultFeed.stations || [];
+      return res.json({
+        stations: rawStations,
+        source: 'authentic-feed',
+        timestamp: new Date().toISOString()
+      });
+    }
+    return res.status(502).json({ error: 'Unable to load fuel data' });
   }
-
-  res.status(502).json({ error: 'Unable to load fuel data' });
 });
 
 // Proxy routes for individual station comments and recent driver marks
@@ -277,6 +304,10 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Radar NN Server running on http://0.0.0.0:${PORT} (isProd: ${isProd})`);
+    // Pre-warm station cache in background so first user request gets instant response
+    getLiveOrEnrichedStations().catch(err => {
+      console.warn('Initial cache warm-up notice:', err.message || err);
+    });
   });
 }
 

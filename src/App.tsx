@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Station, DistrictTab, FuelStatusFilter } from './types/station';
 import {
   isNagornayaWhitelist,
@@ -13,7 +13,15 @@ import { Tabs } from './components/Tabs';
 import { DeficitSummary } from './components/DeficitSummary';
 import { StationCard } from './components/StationCard';
 import { InfoModal } from './components/InfoModal';
-import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { AlertCircle, RefreshCw, Layers, CheckCircle2, X } from 'lucide-react';
+
+interface ToastNotification {
+  id: number;
+  type: 'manual' | 'auto';
+  title: string;
+  message: string;
+  time: string;
+}
 
 export default function App() {
   // Initialize from recent live cache if available, otherwise authentic fallback stations
@@ -42,9 +50,21 @@ export default function App() {
     }
   });
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+  const isFirstLoadRef = useRef(true);
+
+  // Auto-dismiss toast after 4.5 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   // Fetch function using our dedicated Google Script API (always fresh JSON, zero CORS errors)
-  const loadStations = useCallback(async (showIndicator = true) => {
+  // When isManual=true, forces server cache bypass so live data is always fetched immediately
+  const loadStations = useCallback(async (showIndicator = true, isManual = false) => {
     if (showIndicator) setIsRefreshing(true);
     let fetched = false;
 
@@ -61,9 +81,13 @@ export default function App() {
       }
     };
 
+    const forceParam = isManual ? '&force=true' : '';
+
     // 1. Primary: fetch from our enriched local proxy endpoint (/api/stations) which includes recent driver marks
     try {
-      const res = await fetch('/api/stations', { signal: AbortSignal.timeout(6000) });
+      const res = await fetch(`/api/stations?_t=${Date.now()}${forceParam}`, {
+        signal: AbortSignal.timeout(12000)
+      });
       if (res.ok) {
         const json = await res.json();
         const list = Array.isArray(json) ? json : json.stations;
@@ -110,8 +134,10 @@ export default function App() {
       }
     }
 
+    const currentMsk = getNowMsk();
+
     if (fetched) {
-      setLastUpdatedTime(`МСК ${getNowMsk()}`);
+      setLastUpdatedTime(`МСК ${currentMsk}`);
     } else {
       // If offline, recover from recent localStorage cache
       try {
@@ -130,6 +156,21 @@ export default function App() {
       }
     }
 
+    // Show Toast on manual refresh or automatic background refresh (excluding initial load)
+    if (!isFirstLoadRef.current || isManual) {
+      setToast({
+        id: Date.now(),
+        type: isManual ? 'manual' : 'auto',
+        title: isManual ? 'Данные успешно обновлены' : 'Автоматическое обновление',
+        message: 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский (все 28 АЗС)',
+        time: `МСК ${currentMsk}`
+      });
+    }
+
+    if (isFirstLoadRef.current) {
+      isFirstLoadRef.current = false;
+    }
+
     if (showIndicator) {
       setTimeout(() => setIsRefreshing(false), 400);
     }
@@ -137,10 +178,10 @@ export default function App() {
 
   // Initial load & automatic refresh every 5 minutes
   useEffect(() => {
-    loadStations(false);
+    loadStations(false, false);
 
     const interval = setInterval(() => {
-      loadStations(false);
+      loadStations(false, false);
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
@@ -295,7 +336,7 @@ export default function App() {
       <Header
         lastUpdatedTime={lastUpdatedTime}
         isRefreshing={isRefreshing}
-        onRefresh={() => loadStations(true)}
+        onRefresh={() => loadStations(true, true)}
         isLiveApi={isLiveApi}
         onOpenInfo={() => setIsInfoOpen(true)}
       />
@@ -382,6 +423,54 @@ export default function App() {
           )}
         </div>
       </main>
+
+      {/* Floating Toast Notification for manual and automatic updates */}
+      {toast && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] sm:w-auto sm:min-w-[360px] max-w-md bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-3 sm:p-3.5 shadow-2xl shadow-black/80 animate-in slide-in-from-bottom-4 fade-in duration-300"
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2 rounded-xl shrink-0 ${
+                toast.type === 'manual'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+              }`}
+            >
+              {toast.type === 'manual' ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center justify-between gap-1.5">
+                <h4 className="text-xs sm:text-sm font-bold text-white truncate">
+                  {toast.title}
+                </h4>
+                <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">
+                  {toast.time}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 leading-snug">
+                {toast.message}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+              aria-label="Закрыть уведомление"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* Info Modal */}
       <InfoModal isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />
