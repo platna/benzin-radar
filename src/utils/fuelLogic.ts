@@ -242,23 +242,22 @@ export interface StationFuelsInfo {
   label?: string;
 }
 
-// Честный сбор списка топлива (приоритет у свежей отметки!)
 export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo {
   const status = (station.status || '').toLowerCase();
   const detail = (station.detail || '').toLowerCase();
 
+  // Если заправка закрыта или подтверждено "нет топлива"
   if (status === 'no' || status === 'empty' || status === 'none' || /нет топлива|заправка не работает/i.test(detail)) {
     return { text: 'нет топлива', source: 'live', label: 'по последней отметке' };
   }
 
-  // 1. Приоритет: свежая отметка водителя
+  // 1. ВЫСШИЙ ПРИОРИТЕТ: Самая свежая реальная отметка водителя (detail)
   const cleanedDetail = cleanDetailFuels(station.detail);
   if (cleanedDetail && cleanedDetail.length > 0) {
-    const formatted = cleanedDetail.split(/[,·;\s]+/).filter(Boolean).join(', ');
-    return { text: formatted || cleanedDetail, source: 'live', label: 'по последней отметке' };
+    return { text: cleanedDetail, source: 'live', label: 'по последней отметке' };
   }
 
-  // 2. Суточная сводка
+  // 2. ВТОРОЙ ПРИОРИТЕТ: fuels_now (только если в detail не было видов топлива)
   if (station.fuels_now && station.fuels_now.trim().length > 0) {
     const formatted = station.fuels_now
       .split(',')
@@ -270,7 +269,7 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     }
   }
 
-  // 3. Fallback из паспорта АЗС
+  // 3. Реальный паспорт из OpenStreetMap (meta.f), если водители еще не отмечались
   if (station.meta && Array.isArray(station.meta.f) && station.meta.f.length > 0) {
     const fList = (station.meta.f as string[]).map((x: string) => x.toLowerCase().trim());
     const result: string[] = [];
@@ -278,12 +277,15 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     if (fList.includes('95')) result.push('95');
     if (fList.includes('100')) result.push('100');
     if (fList.includes('dt') || fList.includes('дт')) result.push('ДТ');
+    if (fList.includes('lpg') || fList.includes('газ') || fList.includes('суг')) result.push('Газ');
+
     if (result.length > 0) {
       return { text: result.join(', '), source: 'meta', label: 'по паспорту АЗС' };
     }
   }
 
-  return { text: '92, 95', source: 'last_known', label: 'по паспорту АЗС' };
+  // Больше никаких выдуманных данных! Если свежих отметок нет:
+  return { text: 'данных нет', source: 'last_known', label: 'нет отметок' };
 }
 
 // Честный класс топлива: возвращает null, если на сайте "пока никто не отмечал"
@@ -328,12 +330,17 @@ export function formatQueueTrafficLight(detail?: string): QueueTrafficLight | nu
 }
 
 export function getFreshnessText(utcDateStr?: string): { timeMsk: string; diffText: string; full: string } {
-  if (!utcDateStr) return { timeMsk: "--:--", diffText: "недавно", full: "недавно" };
+  if (!utcDateStr) return { timeMsk: "--:--", diffText: "нет отметок", full: "нет свежих отметок" };
   try {
     const cleanStr = utcDateStr.replace(" ", "T");
     const date = new Date(cleanStr.endsWith("Z") ? cleanStr : cleanStr + "Z");
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+
+    // Если отметке больше 24 часов — считаем, что свежих данных нет
+    if (diffMinutes >= 1440) {
+      return { timeMsk: "--:--", diffText: "нет отметок", full: "нет свежих отметок" };
+    }
 
     const mskFormatter = new Intl.DateTimeFormat("ru-RU", {
       timeZone: "Europe/Moscow",
@@ -345,13 +352,12 @@ export function getFreshnessText(utcDateStr?: string): { timeMsk: string; diffTe
     let diffText = "только что";
     if (diffMinutes >= 1 && diffMinutes < 5) diffText = "3-5 мин. назад";
     else if (diffMinutes >= 5 && diffMinutes < 60) diffText = `${diffMinutes} мин. назад`;
-    else if (diffMinutes >= 60 && diffMinutes < 1440) diffText = `${Math.floor(diffMinutes / 60)} ч. назад`;
-    else if (diffMinutes >= 1440) diffText = `${Math.floor(diffMinutes / 1440)} дн. назад`;
+    else if (diffMinutes >= 60) diffText = `${Math.floor(diffMinutes / 60)} ч. назад`;
     else if (diffMinutes < 0) diffText = "только что";
 
     return { timeMsk, diffText, full: `${timeMsk} (${diffText})` };
   } catch {
-    return { timeMsk: "--:--", diffText: "свежие данные", full: "свежие данные" };
+    return { timeMsk: "--:--", diffText: "нет отметок", full: "нет отметок" };
   }
 }
 
