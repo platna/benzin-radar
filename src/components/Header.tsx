@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               ) : (
                 <span className="inline-flex items-center px-1.5 py-0.2 text-[8px] sm:text-[9px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 rounded">
-                  Слепок
+                  Обновление
                 </span>
               )}
             </div>
