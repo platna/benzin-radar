@@ -62,7 +62,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const loadStations = useCallback(async (showIndicator = true, isManual = false) => {
+const loadStations = useCallback(async (showIndicator = true, isManual = false) => {
     if (showIndicator) setIsRefreshing(true);
     let fetched = false;
 
@@ -79,12 +79,13 @@ export default function App() {
     };
 
     const currentMsk = getNowMsk();
-    const targetUrl = `https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200&_t=${Date.now()}`;
 
-    // 1. Основной канал загрузки через прокси с правильным кодированием URL
     try {
-      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+      // Прямой запрос к вашему надежному Google Script серверу
+      const res = await fetch(`${GOOGLE_SCRIPT_API_URL}?_t=${Date.now()}`, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(12000)
+      });
       if (res.ok) {
         const json = await res.json();
         const list = Array.isArray(json) ? json : json.stations;
@@ -100,42 +101,17 @@ export default function App() {
         }
       }
     } catch (e) {
-      console.warn('Основной прокси не ответил, пробуем запасной:', e);
+      console.warn('Сбой загрузки данных:', e);
     }
 
-    // 2. Запасной канал, если первый сбоит
-    if (!fetched) {
-      try {
-        const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-        const res = await fetch(backupUrl, { signal: AbortSignal.timeout(10000) });
-        if (res.ok) {
-          const json = await res.json();
-          const list = Array.isArray(json) ? json : json.stations;
-          if (Array.isArray(list) && list.length > 0) {
-            setStations(list);
-            setIsLiveApi(true);
-            setLastUpdatedTime(`МСК ${currentMsk}`);
-            fetched = true;
-            try {
-              localStorage.setItem('cached_live_stations', JSON.stringify(list));
-              localStorage.setItem('cached_live_time', `МСК ${currentMsk}`);
-            } catch {}
-          }
-        }
-      } catch (e) {
-        console.warn('Запасной прокси тоже не ответил:', e);
-      }
-    }
-
-    // Честное уведомление (не врет, если связи нет)
     if (!isFirstLoadRef.current || isManual) {
       setToast({
         id: Date.now(),
         type: fetched ? (isManual ? 'manual' : 'auto') : 'auto',
         title: fetched ? 'Данные успешно обновлены' : 'Ошибка обновления',
         message: fetched
-          ? 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский (все 28 АЗС)'
-          : 'Не удалось связаться с ГдеБЕНЗ. Показаны данные из памяти.',
+          ? 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский'
+          : 'Не удалось получить свежие данные. Показаны данные из памяти.',
         time: `МСК ${currentMsk}`
       });
     }
