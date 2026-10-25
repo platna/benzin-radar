@@ -172,32 +172,22 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
 
   // 2. Если в detail видов топлива не было, смотрим в fuels_now
   const has95PlusInFuelsNow = /(?:^|[,\s])95\+/i.test(fuelsNow) || /g95|g-95|экто/i.test(fuelsNow);
-  const has95InFuelsNow = /(?:^|[,\s])95(?:\+|plus)?(?:[,\s]|$)/i.test(fuelsNow) || has95PlusInFuelsNow;
+  const has95InFuelsNow = /(?:^|[,\s])95(?:\+|plus)?(?:[^\d]|$)/i.test(fuelsNow) || has95PlusInFuelsNow;
   const fuelsNowMentionsFuel = /(?:^|[^\dа-яa-z])(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(fuelsNow);
 
   if (fuelsNowMentionsFuel && !has95InFuelsNow && !detailHasFuel) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  // Если ни в detail, ни в fuels_now нет перечня топлива, но заправка активна (status: 'yes')
-  let has95 = false;
-  if (!detailHasFuel && !fuelsNowMentionsFuel) {
-    has95 = true; // Станция работает, бензин есть
-  } else {
-    has95 = detailHasFuel ? has95InDetail : (has95InDetail || has95InFuelsNow);
-  }
+  // 3. 95-й есть ТОЛЬКО если он подтвержден водителем (без слепых догадок!)
+  const has95 = detailHasFuel ? has95InDetail : (has95InDetail || has95InFuelsNow);
 
   if (!has95) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  // 95+ (Экто / G-Drive) ставим ТОЛЬКО если он был явно указан в последней отметке detail!
-  let has95Plus = false;
-  if (detailHasFuel) {
-    has95Plus = has95PlusInDetail;
-  } else {
-    has95Plus = has95PlusInFuelsNow;
-  }
+  // 95+ (Экто / G-Drive) ставим ТОЛЬКО если прямо нажали 95+
+  const has95Plus = detailHasFuel ? has95PlusInDetail : has95PlusInFuelsNow;
 
   let state: "available" | "queue" = "available";
   const queueTraffic = formatQueueTrafficLight(s.detail);
@@ -253,18 +243,18 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
   const status = (station.status || '').toLowerCase();
   const detail = (station.detail || '').toLowerCase();
 
-  // Если заправка закрыта или подтверждено "нет топлива"
   if (status === 'no' || status === 'empty' || status === 'none' || /нет топлива|заправка не работает/i.test(detail)) {
     return { text: 'нет топлива', source: 'live', label: 'по последней отметке' };
   }
 
-  // 1. ВЫСШИЙ ПРИОРИТЕТ: Самая свежая реальная отметка водителя (detail)
+  // 1. Свежая отметка водителя
   const cleanedDetail = cleanDetailFuels(station.detail);
   if (cleanedDetail && cleanedDetail.length > 0) {
-    return { text: cleanedDetail, source: 'live', label: 'по последней отметке' };
+    const formatted = cleanedDetail.split(/[,·;\s]+/).filter(Boolean).join(', ');
+    return { text: formatted || cleanedDetail, source: 'live', label: 'по последней отметке' };
   }
 
-  // 2. ВТОРОЙ ПРИОРИТЕТ: fuels_now (только если в detail не было видов топлива)
+  // 2. Отметки за сегодня (fuels_now)
   if (station.fuels_now && station.fuels_now.trim().length > 0) {
     const formatted = station.fuels_now
       .split(',')
@@ -276,23 +266,8 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     }
   }
 
-  // 3. Реальный паспорт из OpenStreetMap (meta.f), если водители еще не отмечались
-  if (station.meta && Array.isArray(station.meta.f) && station.meta.f.length > 0) {
-    const fList = (station.meta.f as string[]).map((x: string) => x.toLowerCase().trim());
-    const result: string[] = [];
-    if (fList.includes('92')) result.push('92');
-    if (fList.includes('95')) result.push('95');
-    if (fList.includes('100')) result.push('100');
-    if (fList.includes('dt') || fList.includes('дт')) result.push('ДТ');
-    if (fList.includes('lpg') || fList.includes('газ') || fList.includes('суг')) result.push('Газ');
-
-    if (result.length > 0) {
-      return { text: result.join(', '), source: 'meta', label: 'по паспорту АЗС' };
-    }
-  }
-
-  // Больше никаких выдуманных данных! Если свежих отметок нет:
-  return { text: 'данных нет', source: 'last_known', label: 'нет отметок' };
+  // Если отметок нет — честно пишем "нет отметок", а не придумываем паспорт!
+  return { text: 'нет свежих отметок', source: 'last_known', label: 'данные устарели' };
 }
 
 // Честный класс топлива: возвращает null, если на сайте "пока никто не отмечал"
