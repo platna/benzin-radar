@@ -5,7 +5,7 @@ import {
   isLeninskyDistrict,
   check95Fuel,
   isQueueStation,
-  GOOGLE_SCRIPT_API_URL
+  GDEBENZ_URL
 } from './utils/fuelLogic';
 import { FALLBACK_STATIONS } from './data/mockStations';
 import { Header } from './components/Header';
@@ -84,8 +84,9 @@ export default function App() {
     const forceParam = isManual ? '&force=true' : '';
 
     // 1. Primary: fetch from our enriched local proxy endpoint (/api/stations) which includes recent driver marks
+    // Загрузка живых данных напрямую через GDEBENZ_URL с обходом CORS
     try {
-      const res = await fetch(`/api/stations?_t=${Date.now()}${forceParam}`, {
+      const res = await fetch(`${GDEBENZ_URL}&_t=${Date.now()}${forceParam}`, {
         signal: AbortSignal.timeout(12000)
       });
       if (res.ok) {
@@ -99,12 +100,12 @@ export default function App() {
             localStorage.setItem('cached_live_stations', JSON.stringify(list));
             localStorage.setItem('cached_live_time', `МСК ${getNowMsk()}`);
           } catch {
-            // Ignore quota errors
+            // Ignore
           }
         }
       }
     } catch (e) {
-      console.warn('Local proxy /api/stations failed, trying direct Google Script API:', e);
+      console.warn('Загрузка GDEBENZ_URL не удалась:', e);
     }
 
     // 2. Secondary fallback: direct Google Script API
@@ -191,14 +192,17 @@ export default function App() {
   const canonicalNagornaya = useMemo(() => FALLBACK_STATIONS.filter(isNagornayaWhitelist), []);
   const canonicalLeninsky = useMemo(() => FALLBACK_STATIONS.filter(isLeninskyDistrict), []);
 
-  // Merge live API station data onto canonical lists so neither district ever loses stations
+  // Вспомогательная функция очистки адреса для надежного сравнения
+  const cleanA = (a?: string) => (a || '').toLowerCase().replace(/[\.\,\s\-]/g, '');
+
   const nagornayaAll = useMemo(() => {
     return canonicalNagornaya.map((canon) => {
-      const live = stations.find(
-        (s) =>
-          (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) ||
-          (s.addr && canon.addr && s.addr.trim().toLowerCase() === canon.addr.trim().toLowerCase())
-      );
+      const live = stations.find((s) => {
+        if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
+        const c1 = cleanA(s.addr || s.address);
+        const c2 = cleanA(canon.addr || canon.address);
+        return Boolean(c1 && c2 && (c1.includes(c2) || c2.includes(c1)));
+      });
       if (!live) return canon;
       const hasDriverFuel = Boolean((live.detail && live.detail.trim().length > 0) || (live.fuels_now && live.fuels_now.trim().length > 0));
       const effectiveSvc = hasDriverFuel ? null : (live.svc !== undefined ? live.svc : null);
@@ -218,11 +222,12 @@ export default function App() {
 
   const leninskyAll = useMemo(() => {
     return canonicalLeninsky.map((canon) => {
-      const live = stations.find(
-        (s) =>
-          (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) ||
-          (s.addr && canon.addr && s.addr.trim().toLowerCase() === canon.addr.trim().toLowerCase())
-      );
+      const live = stations.find((s) => {
+        if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
+        const c1 = cleanA(s.addr || s.address);
+        const c2 = cleanA(canon.addr || canon.address);
+        return Boolean(c1 && c2 && (c1.includes(c2) || c2.includes(c1)));
+      });
       if (!live) return canon;
       const hasDriverFuel = Boolean((live.detail && live.detail.trim().length > 0) || (live.fuels_now && live.fuels_now.trim().length > 0));
       const effectiveSvc = hasDriverFuel ? null : (live.svc !== undefined ? live.svc : null);

@@ -179,7 +179,14 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  const has95 = detailHasFuel ? has95InDetail : (has95InDetail || has95InFuelsNow);
+  // Если ни в detail, ни в fuels_now нет перечня топлива, но заправка активна (status: 'yes')
+  let has95 = false;
+  if (!detailHasFuel && !fuelsNowMentionsFuel) {
+    has95 = true; // Станция работает, бензин есть
+  } else {
+    has95 = detailHasFuel ? has95InDetail : (has95InDetail || has95InFuelsNow);
+  }
+
   if (!has95) {
     return { state: "none", has95: false, has95Plus: false };
   }
