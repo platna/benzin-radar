@@ -80,19 +80,9 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
 
     const currentMsk = getNowMsk();
 
-    // 1. Запрос к вашему проверенному Google Apps Script API
     try {
-      const res = await fetch(GOOGLE_SCRIPT_API_URL, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-        redirect: 'follow',
-        headers: {
-          'Accept': 'application/json'
-        },
-        signal: AbortSignal.timeout(15000)
-      });
-
+      // Родной серверный запрос без блокировок и без CORS
+      const res = await fetch(`/api/stations?_t=${Date.now()}`);
       if (res.ok) {
         const json = await res.json();
         const list = Array.isArray(json) ? json : json.stations;
@@ -108,33 +98,7 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
         }
       }
     } catch (e) {
-      console.warn('Сбой Google API, пробуем прямой канал:', e);
-    }
-
-    // 2. Запасной канал через надежный прокси
-    if (!fetched) {
-      try {
-        const rawTarget = "https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200";
-        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawTarget)}`, {
-          signal: AbortSignal.timeout(10000)
-        });
-        if (res.ok) {
-          const json = await res.json();
-          const list = Array.isArray(json) ? json : json.stations;
-          if (Array.isArray(list) && list.length > 0) {
-            setStations(list);
-            setIsLiveApi(true);
-            setLastUpdatedTime(`МСК ${currentMsk}`);
-            fetched = true;
-            try {
-              localStorage.setItem('cached_live_stations', JSON.stringify(list));
-              localStorage.setItem('cached_live_time', `МСК ${currentMsk}`);
-            } catch {}
-          }
-        }
-      } catch (err) {
-        console.warn('Запасной канал также недоступен:', err);
-      }
+      console.warn('Сбой загрузки данных:', e);
     }
 
     if (!isFirstLoadRef.current || isManual) {
