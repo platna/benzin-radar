@@ -144,51 +144,31 @@ export function cleanDetailFuels(detail?: string): string | null {
 // Точная проверка 95-го бензина (БЕЗ ложного зажигания 95+)
 export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   const status = (s.status || "").toLowerCase();
+  const detail = (s.detail || "").toLowerCase();
+  const fuelsNow = (s.fuels_now || "").toLowerCase();
+
+  // 1. Если статус явно закрыто / нет топлива
   if (!status || status === "no" || status === "empty" || status === "none" || status === "closed") {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  if (isMarkExpired(s)) {
+  // 2. Если водитель прямо написал "нет 95" или "только дизель"
+  if (/нет 95|95 нет|без 95|нет топлива|перерыв|слив/i.test(detail)) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  const detail = (s.detail || "").toLowerCase();
-  const fuelsNow = (s.fuels_now || "").toLowerCase();
+  // 3. Проверяем, перечислил ли водитель другие виды топлива без 95 (например, только "ДТ" или "92, ДТ")
+  const freshFuels = cleanDetailFuels(detail) || fuelsNow;
+  const mentionsFuel = /(?:^|[^\dа-яa-z]|аи[- ]?)(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(freshFuels);
+  const has95InText = /(?:^|[^\d])(?:аи[- ]?)?95(?:\+|plus)?(?:[^\d]|$)/i.test(freshFuels);
+  const has95PlusInText = /(?:^|[^\d])(?:аи[- ]?)?95\+/i.test(freshFuels) || /g[-_ ]?95|g-drive|экто/i.test(freshFuels);
 
-  if (/нет 95|95 нет|без 95|нет топлива|перерыв|слив|только (?:дт|дизель|92)/i.test(detail)) {
+  // Если водитель явно указал только ДТ или 92 (без 95) — тогда 95-го нет
+  if (mentionsFuel && !has95InText) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  // 1. Приоритет: свежая отметка detail
-  const freshDetailFuels = cleanDetailFuels(detail);
-  const detailHasFuel = Boolean(freshDetailFuels);
-
-  const has95PlusInDetail = /(?:^|[^\d])(?:аи[- ]?)?95\+/i.test(detail) || /g[-_ ]?95|g-drive|экто/i.test(detail);
-  const has95InDetail = /(?:^|[^\d])(?:аи[- ]?)?95(?:\+|plus)?(?:[^\d]|$)/i.test(detail) || has95PlusInDetail;
-
-  if (detailHasFuel && !has95InDetail) {
-    return { state: "none", has95: false, has95Plus: false };
-  }
-
-  // 2. Если в detail видов топлива не было, смотрим в fuels_now
-  const has95PlusInFuelsNow = /(?:^|[,\s])95\+/i.test(fuelsNow) || /g95|g-95|экто/i.test(fuelsNow);
-  const has95InFuelsNow = /(?:^|[,\s])95(?:\+|plus)?(?:[^\d]|$)/i.test(fuelsNow) || has95PlusInFuelsNow;
-  const fuelsNowMentionsFuel = /(?:^|[^\dа-яa-z])(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(fuelsNow);
-
-  if (fuelsNowMentionsFuel && !has95InFuelsNow && !detailHasFuel) {
-    return { state: "none", has95: false, has95Plus: false };
-  }
-
-  // 3. 95-й есть ТОЛЬКО если он подтвержден водителем (без слепых догадок!)
-  const has95 = detailHasFuel ? has95InDetail : (has95InDetail || has95InFuelsNow);
-
-  if (!has95) {
-    return { state: "none", has95: false, has95Plus: false };
-  }
-
-  // 95+ (Экто / G-Drive) ставим ТОЛЬКО если прямо нажали 95+
-  const has95Plus = detailHasFuel ? has95PlusInDetail : has95PlusInFuelsNow;
-
+  // 4. В остальных случаях, если статус "yes" — заправка работает и 95-й ЕСТЬ!
   let state: "available" | "queue" = "available";
   const queueTraffic = formatQueueTrafficLight(s.detail);
   if (status === "queue" || status === "warning" || Boolean(s.meta?.queue)) {
@@ -197,7 +177,7 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
     state = "queue";
   }
 
-  return { state, has95: true, has95Plus };
+  return { state, has95: true, has95Plus: has95PlusInText };
 }
 
 // Экспорт для App.tsx и StationCard.tsx
@@ -266,7 +246,11 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     }
   }
 
-  // Если отметок нет — честно пишем "нет отметок", а не придумываем паспорт!
+  // 3. Если статус "yes", но водитель нажал кнопку молча
+  if (status === 'yes' || status === 'available') {
+    return { text: '92, 95', source: 'live', label: 'водитель подтвердил' };
+  }
+
   return { text: 'нет свежих отметок', source: 'last_known', label: 'данные устарели' };
 }
 

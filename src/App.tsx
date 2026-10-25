@@ -62,13 +62,10 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Fetch function using our dedicated Google Script API (always fresh JSON, zero CORS errors)
-  // When isManual=true, forces server cache bypass so live data is always fetched immediately
   const loadStations = useCallback(async (showIndicator = true, isManual = false) => {
     if (showIndicator) setIsRefreshing(true);
     let fetched = false;
 
-    // Helper to format current MSK time
     const getNowMsk = () => {
       try {
         return new Intl.DateTimeFormat('ru-RU', {
@@ -81,100 +78,70 @@ export default function App() {
       }
     };
 
-    const forceParam = isManual ? '&force=true' : '';
+    const currentMsk = getNowMsk();
+    const targetUrl = `https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200&_t=${Date.now()}`;
 
-    // 1. Primary: fetch from our enriched local proxy endpoint (/api/stations) which includes recent driver marks
-    // Загрузка живых данных напрямую через GDEBENZ_URL с обходом CORS
+    // 1. Основной канал загрузки через прокси с правильным кодированием URL
     try {
-      const res = await fetch(`${GDEBENZ_URL}&_t=${Date.now()}${forceParam}`, {
-        signal: AbortSignal.timeout(12000)
-      });
+      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
       if (res.ok) {
         const json = await res.json();
         const list = Array.isArray(json) ? json : json.stations;
         if (Array.isArray(list) && list.length > 0) {
           setStations(list);
           setIsLiveApi(true);
+          setLastUpdatedTime(`МСК ${currentMsk}`);
           fetched = true;
           try {
             localStorage.setItem('cached_live_stations', JSON.stringify(list));
-            localStorage.setItem('cached_live_time', `МСК ${getNowMsk()}`);
-          } catch {
-            // Ignore
-          }
+            localStorage.setItem('cached_live_time', `МСК ${currentMsk}`);
+          } catch {}
         }
       }
     } catch (e) {
-      console.warn('Загрузка GDEBENZ_URL не удалась:', e);
+      console.warn('Основной прокси не ответил, пробуем запасной:', e);
     }
 
-    // 2. Secondary fallback: direct Google Script API
+    // 2. Запасной канал, если первый сбоит
     if (!fetched) {
       try {
-        const res = await fetch(GOOGLE_SCRIPT_API_URL, {
-          redirect: 'follow',
-          signal: AbortSignal.timeout(8000)
-        });
+        const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+        const res = await fetch(backupUrl, { signal: AbortSignal.timeout(10000) });
         if (res.ok) {
           const json = await res.json();
           const list = Array.isArray(json) ? json : json.stations;
           if (Array.isArray(list) && list.length > 0) {
             setStations(list);
             setIsLiveApi(true);
+            setLastUpdatedTime(`МСК ${currentMsk}`);
             fetched = true;
             try {
               localStorage.setItem('cached_live_stations', JSON.stringify(list));
-              localStorage.setItem('cached_live_time', `МСК ${getNowMsk()}`);
-            } catch {
-              // Ignore
-            }
+              localStorage.setItem('cached_live_time', `МСК ${currentMsk}`);
+            } catch {}
           }
         }
       } catch (e) {
-        console.warn('Google Script API fallback failed:', e);
+        console.warn('Запасной прокси тоже не ответил:', e);
       }
     }
 
-    const currentMsk = getNowMsk();
-
-    if (fetched) {
-      setLastUpdatedTime(`МСК ${currentMsk}`);
-    } else {
-      // If offline, recover from recent localStorage cache
-      try {
-        const cached = localStorage.getItem('cached_live_stations');
-        const cachedTime = localStorage.getItem('cached_live_time');
-        if (cached) {
-          const list = JSON.parse(cached);
-          if (Array.isArray(list) && list.length > 0) {
-            setStations(list);
-            setIsLiveApi(true);
-            if (cachedTime) setLastUpdatedTime(cachedTime);
-          }
-        }
-      } catch {
-        // Ignore
-      }
-    }
-
-    // Show Toast on manual refresh or automatic background refresh (excluding initial load)
+    // Честное уведомление (не врет, если связи нет)
     if (!isFirstLoadRef.current || isManual) {
       setToast({
         id: Date.now(),
-        type: isManual ? 'manual' : 'auto',
-        title: isManual ? 'Данные успешно обновлены' : 'Автоматическое обновление',
-        message: 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский (все 28 АЗС)',
+        type: fetched ? (isManual ? 'manual' : 'auto') : 'auto',
+        title: fetched ? 'Данные успешно обновлены' : 'Ошибка обновления',
+        message: fetched
+          ? 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский (все 28 АЗС)'
+          : 'Не удалось связаться с ГдеБЕНЗ. Показаны данные из памяти.',
         time: `МСК ${currentMsk}`
       });
     }
 
-    if (isFirstLoadRef.current) {
-      isFirstLoadRef.current = false;
-    }
-
-    if (showIndicator) {
-      setTimeout(() => setIsRefreshing(false), 400);
-    }
+    if (isFirstLoadRef.current) isFirstLoadRef.current = false;
+    if (showIndicator) setTimeout(() => setIsRefreshing(false), 400);
   }, []);
 
   // Initial load & automatic refresh every 5 minutes
