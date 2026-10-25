@@ -12,7 +12,8 @@ import {
   getBrandInfo,
   getNavigationUrls,
   calculateWhereBenzConfidence,
-  isMarkExpired
+  isMarkExpired,
+  getFuelClass
 } from '../utils/fuelLogic';
 import {
   MapPin,
@@ -163,11 +164,13 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
           </span>
         )}
 
-        {/* Euro-5 / K5 Class */}
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/80">
-          <Award className="w-3 h-3 text-emerald-400 shrink-0" />
-          <span>Евро-5 (К5)</span>
-        </span>
+        {/* Euro-5 / K5 Class — только если реально отмечен на ГдеБЕНЗ */}
+        {getFuelClass(station) && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/80">
+            <Award className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span>{getFuelClass(station)}</span>
+          </span>
+        )}
 
         {/* Confidence rating strictly adhering to Gdebenz scale */}
         {confidencePct !== null && (

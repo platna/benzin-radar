@@ -28,6 +28,7 @@ export interface Station {
   [key: string]: any;
 }
 
+export const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec";
 export const GDEBENZ_URL = "https://corsproxy.io/?url=https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200";
 
 export function isBorOrOutskirts(s: Partial<Station>): boolean {
@@ -121,7 +122,6 @@ export function isMarkExpired(s: Partial<Station>): boolean {
   }
 }
 
-// Извлечение чистого списка топлива из последней отметки detail
 export function cleanDetailFuels(detail?: string): string | null {
   if (!detail) return null;
   const cleaned = detail
@@ -135,14 +135,13 @@ export function cleanDetailFuels(detail?: string): string | null {
     .replace(/^[\s·,;\-]+|[\s·,;\-]+$/g, '')
     .trim();
 
-  // Проверяем, остались ли реальные марки топлива
   if (/(?:^|[^\dа-яa-z]|аи[- ]?)(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(cleaned)) {
     return cleaned;
   }
   return null;
 }
 
-// Точная проверка наличия 95 и 95+ (БЕЗ ложного зажигания 95+)
+// Точная проверка 95-го бензина (БЕЗ ложного зажигания 95+)
 export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   const status = (s.status || "").toLowerCase();
   if (!status || status === "no" || status === "empty" || status === "none" || status === "closed") {
@@ -156,19 +155,17 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   const detail = (s.detail || "").toLowerCase();
   const fuelsNow = (s.fuels_now || "").toLowerCase();
 
-  // Если водитель прямо написал "нет 95"
   if (/нет 95|95 нет|без 95|нет топлива|перерыв|слив|только (?:дт|дизель|92)/i.test(detail)) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  // 1. ПРИОРИТЕТ: Смотрим в свежую отметку detail
+  // 1. Приоритет: свежая отметка detail
   const freshDetailFuels = cleanDetailFuels(detail);
   const detailHasFuel = Boolean(freshDetailFuels);
 
   const has95PlusInDetail = /(?:^|[^\d])(?:аи[- ]?)?95\+/i.test(detail) || /g[-_ ]?95|g-drive|экто/i.test(detail);
   const has95InDetail = /(?:^|[^\d])(?:аи[- ]?)?95(?:\+|plus)?(?:[^\d]|$)/i.test(detail) || has95PlusInDetail;
 
-  // Если в свежей отметке перечислены виды топлива, но НЕТ 95 (например, только ДТ или 92, ДТ)
   if (detailHasFuel && !has95InDetail) {
     return { state: "none", has95: false, has95Plus: false };
   }
@@ -187,8 +184,7 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  // 95+ (Экто / G-Drive) ставим ТОЛЬКО если он был явно указан в свежей отметке detail!
-  // Не верим старой суточной истории fuelsNow!
+  // 95+ (Экто / G-Drive) ставим ТОЛЬКО если он был явно указан в последней отметке detail!
   let has95Plus = false;
   if (detailHasFuel) {
     has95Plus = has95PlusInDetail;
@@ -207,13 +203,46 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   return { state, has95: true, has95Plus };
 }
 
-// Честный сбор информации о топливе (без обмана «по последней отметке»)
+// Экспорт для App.tsx и StationCard.tsx
+export function isQueueStation(s: Partial<Station>): boolean {
+  const fuel = check95Fuel(s);
+  if (fuel.state === "none") return false;
+  if (fuel.state === "queue") return true;
+  const queueTraffic = formatQueueTrafficLight(s.detail);
+  return Boolean(queueTraffic && (queueTraffic.level === "yellow" || queueTraffic.level === "red"));
+}
+
+export function parseLimit(detail?: string): string | null {
+  if (!detail) return null;
+  const limMatch = detail.match(/(?:Лимит|лимит)\s*[:\s-]*([^·,\n]+)/i);
+  return limMatch ? limMatch[1].trim() : null;
+}
+
+export function parseBreak(detail?: string): string | null {
+  if (!detail) return null;
+  const breakMatch = detail.match(/(?:перерыв(?:\s+до\s+\d+\s*ч)?|слив(?:\s+бензовоза)?)[^·,\n]*/i);
+  if (breakMatch) return breakMatch[0].trim();
+  if (/слив/i.test(detail)) return "Слив бензовоза (перерыв до 1 ч)";
+  if (/перерыв/i.test(detail)) return "Технический перерыв";
+  return null;
+}
+
+export function parsePrice(price?: number | string, detail?: string): string | null {
+  if (price !== undefined && price !== null && price !== "") return `${price}`;
+  if (detail) {
+    const pMatch = detail.match(/(\d+[.,]\d{2})\s*(?:₽|руб)/i);
+    if (pMatch) return pMatch[1].replace(",", ".");
+  }
+  return null;
+}
+
 export interface StationFuelsInfo {
   text: string;
   source: 'live' | 'meta' | 'last_known';
   label?: string;
 }
 
+// Честный сбор списка топлива (приоритет у свежей отметки!)
 export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo {
   const status = (station.status || '').toLowerCase();
   const detail = (station.detail || '').toLowerCase();
@@ -222,14 +251,14 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     return { text: 'нет топлива', source: 'live', label: 'по последней отметке' };
   }
 
-  // 1. Высший приоритет: живая свежая отметка водителя
+  // 1. Приоритет: свежая отметка водителя
   const cleanedDetail = cleanDetailFuels(station.detail);
   if (cleanedDetail && cleanedDetail.length > 0) {
     const formatted = cleanedDetail.split(/[,·;\s]+/).filter(Boolean).join(', ');
     return { text: formatted || cleanedDetail, source: 'live', label: 'по последней отметке' };
   }
 
-  // 2. Второй приоритет: суточная сводка (честно пишем «актуально сегодня», а не «по последней отметке»!)
+  // 2. Суточная сводка
   if (station.fuels_now && station.fuels_now.trim().length > 0) {
     const formatted = station.fuels_now
       .split(',')
@@ -249,7 +278,6 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     if (fList.includes('95')) result.push('95');
     if (fList.includes('100')) result.push('100');
     if (fList.includes('dt') || fList.includes('дт')) result.push('ДТ');
-
     if (result.length > 0) {
       return { text: result.join(', '), source: 'meta', label: 'по паспорту АЗС' };
     }
@@ -258,7 +286,7 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
   return { text: '92, 95', source: 'last_known', label: 'по паспорту АЗС' };
 }
 
-// Честный класс топлива: не выдумывает Евро-5, если на сайте "пока никто не отмечал"
+// Честный класс топлива: возвращает null, если на сайте "пока никто не отмечал"
 export function getFuelClass(s: Partial<Station>): string | null {
   const rawClass = s.fuel_class || s.class_name;
   if (!rawClass) return null;
