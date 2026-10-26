@@ -76,7 +76,6 @@ export default function App() {
     const currentMsk = getNowMsk();
 
     try {
-      // Запрашиваем наш эндпоинт Cloudflare
       const res = await fetch(`/api/stations?_t=${Date.now()}`);
       if (res.ok) {
         const json = await res.json();
@@ -102,7 +101,7 @@ export default function App() {
         type: fetched ? (isManual ? 'manual' : 'auto') : 'auto',
         title: fetched ? 'Данные успешно обновлены' : 'Ошибка обновления',
         message: fetched
-          ? 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский'
+          ? 'Синхронизированы оба района: 17 Нагорная + 10 Ленинский'
           : 'Показаны последние сохраненные данные.',
         time: `МСК ${currentMsk}`
       });
@@ -120,15 +119,18 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadStations]);
 
-  // Строго фиксированные 17 и 11 АЗС
   const canonicalNagornaya = useMemo(() => TARGET_STATIONS_NN.filter(isNagornayaWhitelist), []);
   const canonicalLeninsky = useMemo(() => TARGET_STATIONS_NN.filter(isLeninskyDistrict), []);
 
-  // Жесткая привязка: ТОЛЬКО по точному OSM ID или точному совпадению номера дома!
+  const cleanStr = (s?: string) => (s || '').toLowerCase().replace(/[^a-zа-я0-9]/g, '');
+
   const mergeStationData = (canon: Station) => {
     const live = stations.find((s) => {
+      // 1. По точному OSM ID
       if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
-      // Если OSM ID не совпал, проверяем совпадение бренда И номера дома
+      if (s.id && canon.osm_id && String(s.id) === String(canon.osm_id)) return true;
+
+      // 2. По бренду и совпадению адреса
       const sBrand = (s.brand || s.name || '').toLowerCase();
       const cBrand = (canon.brand || canon.name || '').toLowerCase();
       const sameBrand = (sBrand.includes('лукойл') && cBrand.includes('лукойл')) ||
@@ -137,36 +139,35 @@ export default function App() {
 
       if (!sameBrand) return false;
 
-      const sAddr = (s.addr || s.address || '').toLowerCase();
-      const cAddr = (canon.addr || canon.address || '').toLowerCase();
-      
-      // Извлекаем номер дома (например, "10", "6а", "110в", "3а")
-      const extractNum = (str: string) => {
-        const m = str.match(/(?:дом|д\.?|\s|^)(\d+[а-яa-z]?)(?:[^\dа-яa-z]|$)/i);
-        return m ? m[1].toLowerCase() : null;
-      };
+      const c1 = cleanStr(s.addr || s.address);
+      const c2 = cleanStr(canon.addr || canon.address);
+      if (c1 && c2 && (c1.includes(c2) || c2.includes(c1))) return true;
 
-      const n1 = extractNum(sAddr);
-      const n2 = extractNum(cAddr);
+      // 3. По близким координатам (~250 метров)
+      const lat1 = s.lat ?? s.latitude;
+      const lon1 = s.lon ?? s.lng ?? s.longitude;
+      const lat2 = canon.lat ?? canon.latitude;
+      const lon2 = canon.lon ?? canon.lng ?? canon.longitude;
+      if (lat1 && lon1 && lat2 && lon2) {
+        return Math.abs(lat1 - lat2) < 0.0025 && Math.abs(lon1 - lon2) < 0.0035;
+      }
 
-      return Boolean(n1 && n2 && n1 === n2);
+      return false;
     });
 
     if (!live) return canon;
 
-    // ВАЖНО: имя, бренд и адрес ВСЕГДА берем из нашего эталона (canon), 
-    // чтобы сторонние АЗС вроде Опти не могли подменить собой Teboil!
     return {
       ...canon,
-      status: live.status ?? canon.status,
+      status: live.status || canon.status || "yes",
       conflict: live.conflict,
       dt_only: live.dt_only,
       fuels_now: live.fuels_now || canon.fuels_now,
       detail: live.detail || canon.detail,
       last_driver_at: live.last_driver_at || live.last_at || canon.last_driver_at,
       last_at: live.last_at || live.last_driver_at || canon.last_at,
-      price: live.price || canon.price,
-      prices_now: live.prices_now || canon.prices_now
+      confidence_base: live.confidence_base !== undefined ? live.confidence_base : canon.confidence_base,
+      price: live.price || canon.price
     };
   };
 
@@ -205,7 +206,7 @@ export default function App() {
       }
     });
 
-    const total = 11;
+    const total = 10;
     return { total, available, free, queue, empty: Math.max(0, total - available) };
   }, [leninskyAll]);
 
