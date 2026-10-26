@@ -262,6 +262,16 @@ export const TARGET_STATIONS_NN: Station[] = [
     fuels_now: ""
   },
   {
+    osm_id: "7470134186",
+    brand: "Газпромнефть",
+    name: "Газпромнефть",
+    addr: "ул. Героя Попова, 38",
+    lat: 56.2550669,
+    lon: 43.9278932,
+    status: null,
+    fuels_now: ""
+  },
+  {
     osm_id: "965102137",
     brand: "Газпромнефть",
     name: "Газпромнефть",

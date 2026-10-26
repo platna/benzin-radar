@@ -203,7 +203,7 @@ export default function App() {
       }
     });
 
-    const total = 10;
+    const total = 11;
     return { total, available, free, queue, empty: Math.max(0, total - available) };
   }, [leninskyAll]);
 
