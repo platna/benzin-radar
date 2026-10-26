@@ -6,7 +6,7 @@ import {
   check95Fuel,
   isQueueStation
 } from './utils/fuelLogic';
-import { FALLBACK_STATIONS } from './data/mockStations';
+import { TARGET_STATIONS_NN } from './data/mockStations';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { DeficitSummary } from './components/DeficitSummary';
@@ -33,7 +33,7 @@ export default function App() {
     } catch {
       // Ignore
     }
-    return FALLBACK_STATIONS;
+    return TARGET_STATIONS_NN;
   });
   const [currentDistrict, setCurrentDistrict] = useState<DistrictTab>('nagornaya');
   const [activeFilter, setActiveFilter] = useState<FuelStatusFilter>('all');
@@ -51,12 +51,9 @@ export default function App() {
   const [toast, setToast] = useState<ToastNotification | null>(null);
   const isFirstLoadRef = useRef(true);
 
-  // Auto-dismiss toast
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => {
-      setToast(null);
-    }, 4500);
+    const timer = setTimeout(() => setToast(null), 4500);
     return () => clearTimeout(timer);
   }, [toast]);
 
@@ -79,6 +76,7 @@ export default function App() {
     const currentMsk = getNowMsk();
 
     try {
+      // Запрашиваем наш эндпоинт Cloudflare
       const res = await fetch(`/api/stations?_t=${Date.now()}`);
       if (res.ok) {
         const json = await res.json();
@@ -105,7 +103,7 @@ export default function App() {
         title: fetched ? 'Данные успешно обновлены' : 'Ошибка обновления',
         message: fetched
           ? 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский'
-          : 'Не удалось получить свежие данные. Показаны данные из памяти.',
+          : 'Показаны последние сохраненные данные.',
         time: `МСК ${currentMsk}`
       });
     }
@@ -122,54 +120,53 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadStations]);
 
-  const canonicalNagornaya = useMemo(() => FALLBACK_STATIONS.filter(isNagornayaWhitelist), []);
-  const canonicalLeninsky = useMemo(() => FALLBACK_STATIONS.filter(isLeninskyDistrict), []);
+  // Строго фиксированные 17 и 11 АЗС
+  const canonicalNagornaya = useMemo(() => TARGET_STATIONS_NN.filter(isNagornayaWhitelist), []);
+  const canonicalLeninsky = useMemo(() => TARGET_STATIONS_NN.filter(isLeninskyDistrict), []);
 
-  const cleanA = (a?: string) => (a || '').toLowerCase().replace(/[\.\,\s\-]/g, '');
-
-  // Функция связки эталонной АЗС со свежими данными ГдеБЕНЗ
+  // Жесткая привязка: ТОЛЬКО по точному OSM ID или точному совпадению номера дома!
   const mergeStationData = (canon: Station) => {
     const live = stations.find((s) => {
-      // 1. По OSM ID
       if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
+      // Если OSM ID не совпал, проверяем совпадение бренда И номера дома
+      const sBrand = (s.brand || s.name || '').toLowerCase();
+      const cBrand = (canon.brand || canon.name || '').toLowerCase();
+      const sameBrand = (sBrand.includes('лукойл') && cBrand.includes('лукойл')) ||
+                        (sBrand.includes('teboil') && cBrand.includes('teboil')) ||
+                        (sBrand.includes('газпром') && cBrand.includes('газпром'));
 
-      // 2. По координатам (радиус ~150 метров)
-      const lat1 = s.lat ?? s.latitude;
-      const lon1 = s.lon ?? s.lng ?? s.longitude;
-      const lat2 = canon.lat ?? canon.latitude;
-      const lon2 = canon.lon ?? canon.lng ?? canon.longitude;
-      if (lat1 && lon1 && lat2 && lon2) {
-        const dLat = Math.abs(lat1 - lat2);
-        const dLon = Math.abs(lon1 - lon2);
-        if (dLat < 0.002 && dLon < 0.003) return true;
-      }
+      if (!sameBrand) return false;
 
-      // 3. По совпадению адреса
-      const c1 = cleanA(s.addr || s.address);
-      const c2 = cleanA(canon.addr || canon.address);
-      return Boolean(c1 && c2 && (c1.includes(c2) || c2.includes(c1)));
+      const sAddr = (s.addr || s.address || '').toLowerCase();
+      const cAddr = (canon.addr || canon.address || '').toLowerCase();
+      
+      // Извлекаем номер дома (например, "10", "6а", "110в", "3а")
+      const extractNum = (str: string) => {
+        const m = str.match(/(?:дом|д\.?|\s|^)(\d+[а-яa-z]?)(?:[^\dа-яa-z]|$)/i);
+        return m ? m[1].toLowerCase() : null;
+      };
+
+      const n1 = extractNum(sAddr);
+      const n2 = extractNum(cAddr);
+
+      return Boolean(n1 && n2 && n1 === n2);
     });
 
     if (!live) return canon;
 
-    // Автоматически извлекаем свежую цену 95-го и время отметки из объекта prices_now
-    const p95 = live.prices_now?.['95'] || live.prices_now?.['95+'];
-    const pAny = p95 || live.prices_now?.['92'] || live.prices_now?.['dt'];
-    const resolvedPrice = live.price || p95?.p || canon.price;
-    const resolvedTime = live.last_driver_at || live.last_at || pAny?.t || canon.last_driver_at;
-
+    // ВАЖНО: имя, бренд и адрес ВСЕГДА берем из нашего эталона (canon), 
+    // чтобы сторонние АЗС вроде Опти не могли подменить собой Teboil!
     return {
       ...canon,
-      ...live,
-      price: resolvedPrice,
-      last_driver_at: resolvedTime,
-      last_at: resolvedTime,
-      name: live.name || canon.name,
-      brand: live.brand || canon.brand,
-      addr: live.addr || canon.addr,
-      lat: live.lat ?? canon.lat,
-      lon: live.lon ?? canon.lon,
-      meta: live.meta || canon.meta
+      status: live.status ?? canon.status,
+      conflict: live.conflict,
+      dt_only: live.dt_only,
+      fuels_now: live.fuels_now || canon.fuels_now,
+      detail: live.detail || canon.detail,
+      last_driver_at: live.last_driver_at || live.last_at || canon.last_driver_at,
+      last_at: live.last_at || live.last_driver_at || canon.last_at,
+      price: live.price || canon.price,
+      prices_now: live.prices_now || canon.prices_now
     };
   };
 
@@ -185,11 +182,8 @@ export default function App() {
       const fuel = check95Fuel(s);
       if (fuel.state !== 'none') {
         available++;
-        if (isQueueStation(s)) {
-          queue++;
-        } else {
-          free++;
-        }
+        if (isQueueStation(s)) queue++;
+        else free++;
       }
     });
 
@@ -206,11 +200,8 @@ export default function App() {
       const fuel = check95Fuel(s);
       if (fuel.state !== 'none') {
         available++;
-        if (isQueueStation(s)) {
-          queue++;
-        } else {
-          free++;
-        }
+        if (isQueueStation(s)) queue++;
+        else free++;
       }
     });
 
@@ -233,11 +224,11 @@ export default function App() {
         if (fuel.state === 'none') return false;
         if (isQueueStation(s)) return false;
       } else if (activeFilter === 'lukoil') {
-        if (brand.indexOf('лукойл') === -1 && brand.indexOf('lukoil') === -1) return false;
+        if (!brand.includes('лукойл') && !brand.includes('lukoil')) return false;
       } else if (activeFilter === 'gpn') {
-        if (brand.indexOf('газпром') === -1 && brand.indexOf('gazprom') === -1) return false;
+        if (!brand.includes('газпром') && !brand.includes('gazprom')) return false;
       } else if (activeFilter === 'teboil') {
-        if (brand.indexOf('teboil') === -1 && brand.indexOf('тебойл') === -1) return false;
+        if (!brand.includes('teboil') && !brand.includes('тебойл')) return false;
       }
 
       if (searchQuery.trim()) {
@@ -318,7 +309,7 @@ export default function App() {
           {displayedStations.length > 0 ? (
             displayedStations.map((station) => (
               <StationCard
-                key={station.id || station.osm_id || `${station.lat}_${station.lon}`}
+                key={station.osm_id || `${station.lat}_${station.lon}`}
                 station={station}
               />
             ))
@@ -329,7 +320,7 @@ export default function App() {
               </div>
               <h3 className="text-base font-bold text-white">Ничего не найдено</h3>
               <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                По текущим параметрам фильтрации заправок не найдено. Попробуйте сбросить фильтры или изменить поисковый запрос.
+                По текущим параметрам фильтрации заправок не найдено.
               </p>
               <button
                 type="button"
