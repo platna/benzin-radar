@@ -54,13 +54,12 @@ export function isNagornayaWhitelist(s: Partial<Station>): boolean {
   return false;
 }
 
-// 2. ЛЕНИНСКИЙ РАЙОН (СТРОГО 10 АЗС без ОПТИ)
+// 2. ЛЕНИНСКИЙ РАЙОН (10 АЗС)
 export function isLeninskyDistrict(s: Partial<Station>): boolean {
   if (isBorOrOutskirts(s)) return false;
   const brand = (s.brand || s.name || "").toLowerCase();
   const addr = (s.addr || s.address || "").toLowerCase();
 
-  // Исключаем ОПТИ по твоему требованию
   if (brand.indexOf("опти") !== -1 || addr.indexOf("5б") !== -1) return false;
 
   const isTargetBrand = (brand.indexOf("лукойл") !== -1 || brand.indexOf("lukoil") !== -1 ||
@@ -85,10 +84,9 @@ export interface FuelCheckResult {
   has95Plus: boolean;
 }
 
-// Заправка считается устаревшей ТОЛЬКО если есть дата и ей больше 24 часов
 export function isMarkExpired(s: Partial<Station>): boolean {
   const timeStr = s.last_driver_at || s.last_at;
-  if (!timeStr) return false; // Исправлено: если даты нет, не считаем устаревшей!
+  if (!timeStr) return false;
   try {
     const cleanTime = timeStr.replace(' ', 'T') + (/[zZ]|[+\-]\d\d:?\d\d$/.test(timeStr) ? '' : 'Z');
     const timeMs = new Date(cleanTime).getTime();
@@ -118,7 +116,6 @@ export function cleanDetailFuels(detail?: string): string | null {
   return null;
 }
 
-// Строгий разбор токенов топлива
 function parseTokens(str?: string): { has95: boolean; has95Plus: boolean; mentionsOtherOnly: boolean } {
   if (!str) return { has95: false, has95Plus: false, mentionsOtherOnly: false };
 
@@ -140,10 +137,11 @@ function parseTokens(str?: string): { has95: boolean; has95Plus: boolean; mentio
   return { has95, has95Plus, mentionsOtherOnly: hasOther && !has95 && !has95Plus };
 }
 
-// Проверка наличия АИ-95 и 95+
+// Строжайшая проверка 95-го по ПЕРВОЙ свежей отметке водителя
 export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   const status = (s.status || "").toLowerCase();
   const detail = (s.detail || "").toLowerCase();
+  const fuelsNow = (s.fuels_now || "").toLowerCase();
 
   if (s.dt_only === 1 || s.dt_only === true || s.dt_only === "1") {
     return { state: "none", has95: false, has95Plus: false };
@@ -155,55 +153,35 @@ export function check95Fuel(s: Partial<Station>): FuelCheckResult {
     return { state: "none", has95: false, has95Plus: false };
   }
 
-  let has95 = false;
-  let has95Plus = false;
-
-  // 1. Приоритет: свежая отметка водителя
+  // 1. АБСОЛЮТНЫЙ ПРИОРИТЕТ: свежая отметка водителя detail
   if (s.detail && s.detail.trim().length > 0) {
     const cleaned = cleanDetailFuels(s.detail);
     const parsed = parseTokens(cleaned || s.detail);
-    
+
+    // Если водитель отметил только 92 или ДТ (без 95) — СТРОГО КРАСНЫЙ!
     if (parsed.mentionsOtherOnly) {
       return { state: "none", has95: false, has95Plus: false };
     }
+
     if (parsed.has95 || parsed.has95Plus) {
-      has95 = parsed.has95;
-      has95Plus = parsed.has95Plus;
+      const state = (s.conflict === "queue" || status === "queue" || status === "warning" || Boolean(s.meta?.queue)) ? "queue" : "available";
+      return { state, has95: parsed.has95, has95Plus: parsed.has95Plus };
     }
   }
 
-  // 2. Если в detail не указано — берем из fuels_now
-  if (!has95 && !has95Plus && s.fuels_now && s.fuels_now.trim().length > 0) {
-    const parsed = parseTokens(s.fuels_now);
-    if (parsed.mentionsOtherOnly) {
+  // 2. Вторично: fuels_now
+  if (fuelsNow.length > 0) {
+    const parsedF = parseTokens(fuelsNow);
+    if (parsedF.mentionsOtherOnly) {
       return { state: "none", has95: false, has95Plus: false };
     }
-    has95 = parsed.has95;
-    has95Plus = parsed.has95Plus;
+    if (parsedF.has95 || parsedF.has95Plus) {
+      const state = (s.conflict === "queue" || status === "queue" || status === "warning") ? "queue" : "available";
+      return { state, has95: parsedF.has95, has95Plus: parsedF.has95Plus };
+    }
   }
 
-  // 3. Если есть статус "yes" и нет отрицаний — считаем 95 есть
-  if (!has95 && !has95Plus && status === "yes") {
-    has95 = true;
-  }
-
-  if (!has95 && !has95Plus) {
-    return { state: "none", has95: false, has95Plus: false };
-  }
-
-  let state: "available" | "queue" = "available";
-  const queueTraffic = formatQueueTrafficLight(s.detail);
-  if (
-    s.conflict === "queue" || 
-    status === "queue" || 
-    status === "warning" || 
-    Boolean(s.meta?.queue) ||
-    (queueTraffic && (queueTraffic.level === "yellow" || queueTraffic.level === "red"))
-  ) {
-    state = "queue";
-  }
-
-  return { state, has95, has95Plus };
+  return { state: "none", has95: false, has95Plus: false };
 }
 
 export function isQueueStation(s: Partial<Station>): boolean {
@@ -256,14 +234,12 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     return { text: 'нет топлива', source: 'live', label: 'по последней отметке' };
   }
 
-  // 1. Свежая отметка водителя
   const cleanedDetail = cleanDetailFuels(station.detail);
   if (cleanedDetail && cleanedDetail.length > 0) {
     const formatted = cleanedDetail.split(/[,·;\s]+/).filter(Boolean).map(f => f.toUpperCase()).join(', ');
     return { text: formatted || cleanedDetail, source: 'live', label: 'по последней отметке' };
   }
 
-  // 2. fuels_now
   if (station.fuels_now && station.fuels_now.trim().length > 0) {
     const formatted = station.fuels_now
       .split(',')
