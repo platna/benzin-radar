@@ -124,14 +124,14 @@ export default function App() {
 
   const cleanStr = (s?: string) => (s || '').toLowerCase().replace(/[^a-zа-я0-9]/g, '');
 
-  // Жесткая привязка: ТОЛЬКО по точному OSM ID либо точному номеру дома с буквой (70А и 70Б больше не путаются!)
+  // Жесткая привязка: ТОЛЬКО по точному OSM ID либо по точному совпадению улицы и дома
   const mergeStationData = (canon: Station) => {
     const live = stations.find((s) => {
       // 1. Приоритет: точный OSM ID
       if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
       if (s.id && canon.osm_id && String(s.id) === String(canon.osm_id)) return true;
 
-      // 2. Проверяем бренд
+      // 2. Если OSM ID нет — проверяем бренд
       const sBrand = (s.brand || s.name || '').toLowerCase();
       const cBrand = (canon.brand || canon.name || '').toLowerCase();
       const sameBrand = (sBrand.includes('лукойл') && cBrand.includes('лукойл')) ||
@@ -140,16 +140,12 @@ export default function App() {
 
       if (!sameBrand) return false;
 
-      // 3. Строго проверяем номер и БУКВУ дома (70а и 70б никогда не совпадут!)
-      const extractNum = (str: string) => {
-        const m = str.toLowerCase().match(/(?:дом|д\.?|\s|^)(\d+[а-яa-z]?)(?:[^\dа-яa-z]|$)/i);
-        return m ? m[1].replace(/[^0-9а-яa-z]/gi, '') : null;
-      };
+      // 3. Строго проверяем улицу и номер дома вместе (Магистральная 6 больше не спутается со Стеклозаводским 6!)
+      const cleanA = (a?: string) => (a || '').toLowerCase().replace(/[^0-9а-яa-z]/gi, '');
+      const a1 = cleanA(s.addr || s.address);
+      const a2 = cleanA(canon.addr || canon.address);
 
-      const n1 = extractNum(s.addr || s.address || '');
-      const n2 = extractNum(canon.addr || canon.address || '');
-
-      return Boolean(n1 && n2 && n1 === n2);
+      return Boolean(a1 && a2 && (a1.includes(a2) || a2.includes(a1)));
     });
 
     if (!live) return canon;

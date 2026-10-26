@@ -329,9 +329,9 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
               )}
             </span>
           </div>
-          {fuelsInfo.label && (
+          {fuelsInfo.label && fuelsInfo.text !== 'нет свежих отметок' && (
             <span className="text-[10px] text-slate-500 shrink-0 ml-2 font-normal">
-              {isExpired ? 'по паспорту АЗС' : fuelsInfo.label}
+              {fuelsInfo.label}
             </span>
           )}
         </div>
