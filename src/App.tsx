@@ -124,13 +124,14 @@ export default function App() {
 
   const cleanStr = (s?: string) => (s || '').toLowerCase().replace(/[^a-zа-я0-9]/g, '');
 
+  // Жесткая привязка: ТОЛЬКО по точному OSM ID либо точному номеру дома с буквой (70А и 70Б больше не путаются!)
   const mergeStationData = (canon: Station) => {
     const live = stations.find((s) => {
-      // 1. По точному OSM ID
+      // 1. Приоритет: точный OSM ID
       if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
       if (s.id && canon.osm_id && String(s.id) === String(canon.osm_id)) return true;
 
-      // 2. По бренду и совпадению адреса
+      // 2. Проверяем бренд
       const sBrand = (s.brand || s.name || '').toLowerCase();
       const cBrand = (canon.brand || canon.name || '').toLowerCase();
       const sameBrand = (sBrand.includes('лукойл') && cBrand.includes('лукойл')) ||
@@ -139,20 +140,16 @@ export default function App() {
 
       if (!sameBrand) return false;
 
-      const c1 = cleanStr(s.addr || s.address);
-      const c2 = cleanStr(canon.addr || canon.address);
-      if (c1 && c2 && (c1.includes(c2) || c2.includes(c1))) return true;
+      // 3. Строго проверяем номер и БУКВУ дома (70а и 70б никогда не совпадут!)
+      const extractNum = (str: string) => {
+        const m = str.toLowerCase().match(/(?:дом|д\.?|\s|^)(\d+[а-яa-z]?)(?:[^\dа-яa-z]|$)/i);
+        return m ? m[1].replace(/[^0-9а-яa-z]/gi, '') : null;
+      };
 
-      // 3. По близким координатам (~250 метров)
-      const lat1 = s.lat ?? s.latitude;
-      const lon1 = s.lon ?? s.lng ?? s.longitude;
-      const lat2 = canon.lat ?? canon.latitude;
-      const lon2 = canon.lon ?? canon.lng ?? canon.longitude;
-      if (lat1 && lon1 && lat2 && lon2) {
-        return Math.abs(lat1 - lat2) < 0.0025 && Math.abs(lon1 - lon2) < 0.0035;
-      }
+      const n1 = extractNum(s.addr || s.address || '');
+      const n2 = extractNum(canon.addr || canon.address || '');
 
-      return false;
+      return Boolean(n1 && n2 && n1 === n2);
     });
 
     if (!live) return canon;
