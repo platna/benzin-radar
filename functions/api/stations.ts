@@ -1,60 +1,57 @@
 export async function onRequest() {
-  const targetUrl = `https://gdebenz.ru/api/stations?lat1=56.20&lon1=43.80&lat2=56.38&lon2=44.16&_=${Date.now()}`;
+  const stationsUrl = `https://gdebenz.ru/api/stations?lat1=56.20&lon1=43.80&lat2=56.38&lon2=44.16&_=${Date.now()}`;
+  const commentsUrl = `https://gdebenz.ru/api/comments?lat1=56.20&lon1=43.80&lat2=56.38&lon2=44.16&_=${Date.now()}`;
   const googleBackup = `https://script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec?_nocache=${Date.now()}`;
 
   const headers = {
     "Accept": "application/json, text/plain, */*",
     "Referer": "https://gdebenz.ru/",
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Cache-Control": "no-cache, no-store, must-revalidate"
   };
 
   try {
-    const res = await fetch(targetUrl, { headers });
+    // Делаем всего ДВА параллельных запроса вместо 28!
+    const [stationsRes, commentsRes] = await Promise.all([
+      fetch(stationsUrl, { headers }),
+      fetch(commentsUrl, { headers }).catch(() => null)
+    ]);
+
     let stations: any[] = [];
 
-    if (res.ok) {
-      stations = await res.json();
+    if (stationsRes && stationsRes.ok) {
+      stations = await stationsRes.json();
     } else {
       const bRes = await fetch(googleBackup, { redirect: "follow" });
       stations = await bRes.json();
     }
 
     if (!Array.isArray(stations)) {
-      return new Response(JSON.stringify([]), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify([]), {
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+      });
     }
 
-    // Для целевых АЗС запрашиваем самую свежую отметку водителя напрямую
-    const targetOsmIds = [
-      "2479390676", "1674764865", "13947402184", "599191712", "1731947616",
-      "1942823075", "1658293594", "1673731750", "usr_UtHRpk4hluU", "3043826790",
-      "1706992430", "4748992371", "12960097557", "usr__IZ5Ams1XlM", "usr_tzWzTV6gNxU",
-      "usr_eec8C6Wd3Ek", "1585250197", "968431748", "1979549015", "428600249",
-      "1873946701", "503595021", "10108987158", "1839076936", "472059201",
-      "1188839960", "965102137", "4221673408"
-    ];
+    // Если удалось получить сводку комментариев, привязываем их к АЗС
+    if (commentsRes && commentsRes.ok) {
+      try {
+        const commentsData = await commentsRes.json();
+        // ГдеБЕНЗ может возвращать массив или объект со списком отметок
+        const commentsList = Array.isArray(commentsData) ? commentsData : (commentsData.comments || []);
 
-    const matchedStations = stations.filter((s: any) => targetOsmIds.includes(String(s.osm_id)));
-
-    await Promise.all(
-      matchedStations.map(async (s: any) => {
-        try {
-          const cRes = await fetch(`https://gdebenz.ru/api/comments/${s.osm_id}/recent?limit=2&_=${Date.now()}`, { headers });
-          if (cRes.ok) {
-            const comments = await cRes.json();
-            if (Array.isArray(comments) && comments.length > 0) {
-              const latest = comments[0];
-              s.detail = latest.detail || "";
-              s.last_driver_at = latest.created_at || s.last_driver_at;
-              s.last_at = latest.created_at || s.last_at;
-              if (latest.status) s.status = latest.status;
-            }
+        for (const c of commentsList) {
+          const st = stations.find((s: any) => String(s.osm_id) === String(c.osm_id || c.station_id));
+          if (st && (!st.last_driver_at || (c.created_at && c.created_at > st.last_driver_at))) {
+            st.detail = c.detail || st.detail;
+            st.last_driver_at = c.created_at;
+            st.last_at = c.created_at;
+            if (c.status) st.status = c.status;
           }
-        } catch {
-          // Игнорируем единичные сбои
         }
-      })
-    );
+      } catch {
+        // Игнорируем ошибку разбора комментариев
+      }
+    }
 
     return new Response(JSON.stringify(stations), {
       headers: {
