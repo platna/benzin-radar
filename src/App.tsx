@@ -4,8 +4,7 @@ import {
   isNagornayaWhitelist,
   isLeninskyDistrict,
   check95Fuel,
-  isQueueStation,
-  GDEBENZ_URL
+  isQueueStation
 } from './utils/fuelLogic';
 import { FALLBACK_STATIONS } from './data/mockStations';
 import { Header } from './components/Header';
@@ -24,7 +23,6 @@ interface ToastNotification {
 }
 
 export default function App() {
-  // Initialize from recent live cache if available, otherwise authentic fallback stations
   const [stations, setStations] = useState<Station[]>(() => {
     try {
       const cached = localStorage.getItem('cached_live_stations');
@@ -53,7 +51,7 @@ export default function App() {
   const [toast, setToast] = useState<ToastNotification | null>(null);
   const isFirstLoadRef = useRef(true);
 
-  // Auto-dismiss toast after 4.5 seconds
+  // Auto-dismiss toast
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => {
@@ -62,7 +60,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-const loadStations = useCallback(async (showIndicator = true, isManual = false) => {
+  const loadStations = useCallback(async (showIndicator = true, isManual = false) => {
     if (showIndicator) setIsRefreshing(true);
     let fetched = false;
 
@@ -81,7 +79,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
     const currentMsk = getNowMsk();
 
     try {
-      // Родной серверный запрос без блокировок и без CORS
       const res = await fetch(`/api/stations?_t=${Date.now()}`);
       if (res.ok) {
         const json = await res.json();
@@ -117,75 +114,68 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
     if (showIndicator) setTimeout(() => setIsRefreshing(false), 400);
   }, []);
 
-  // Initial load & automatic refresh every 5 minutes
   useEffect(() => {
     loadStations(false, false);
-
     const interval = setInterval(() => {
       loadStations(false, false);
     }, 5 * 60 * 1000);
-
     return () => clearInterval(interval);
   }, [loadStations]);
 
-  // Canonical lists: strictly 17 stations for Nagornaya, strictly 11 stations for Leninsky
   const canonicalNagornaya = useMemo(() => FALLBACK_STATIONS.filter(isNagornayaWhitelist), []);
   const canonicalLeninsky = useMemo(() => FALLBACK_STATIONS.filter(isLeninskyDistrict), []);
 
-  // Вспомогательная функция очистки адреса для надежного сравнения
   const cleanA = (a?: string) => (a || '').toLowerCase().replace(/[\.\,\s\-]/g, '');
 
-  const nagornayaAll = useMemo(() => {
-    return canonicalNagornaya.map((canon) => {
-      const live = stations.find((s) => {
-        if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
-        const c1 = cleanA(s.addr || s.address);
-        const c2 = cleanA(canon.addr || canon.address);
-        return Boolean(c1 && c2 && (c1.includes(c2) || c2.includes(c1)));
-      });
-      if (!live) return canon;
-      const hasDriverFuel = Boolean((live.detail && live.detail.trim().length > 0) || (live.fuels_now && live.fuels_now.trim().length > 0));
-      const effectiveSvc = hasDriverFuel ? null : (live.svc !== undefined ? live.svc : null);
-      return {
-        ...canon,
-        ...live,
-        svc: effectiveSvc,
-        name: live.name || canon.name,
-        brand: live.brand || canon.brand,
-        addr: live.addr || canon.addr,
-        lat: live.lat ?? canon.lat,
-        lon: live.lon ?? canon.lon,
-        meta: live.meta || canon.meta
-      };
-    });
-  }, [canonicalNagornaya, stations]);
+  // Функция связки эталонной АЗС со свежими данными ГдеБЕНЗ
+  const mergeStationData = (canon: Station) => {
+    const live = stations.find((s) => {
+      // 1. По OSM ID
+      if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
 
-  const leninskyAll = useMemo(() => {
-    return canonicalLeninsky.map((canon) => {
-      const live = stations.find((s) => {
-        if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
-        const c1 = cleanA(s.addr || s.address);
-        const c2 = cleanA(canon.addr || canon.address);
-        return Boolean(c1 && c2 && (c1.includes(c2) || c2.includes(c1)));
-      });
-      if (!live) return canon;
-      const hasDriverFuel = Boolean((live.detail && live.detail.trim().length > 0) || (live.fuels_now && live.fuels_now.trim().length > 0));
-      const effectiveSvc = hasDriverFuel ? null : (live.svc !== undefined ? live.svc : null);
-      return {
-        ...canon,
-        ...live,
-        svc: effectiveSvc,
-        name: live.name || canon.name,
-        brand: live.brand || canon.brand,
-        addr: live.addr || canon.addr,
-        lat: live.lat ?? canon.lat,
-        lon: live.lon ?? canon.lon,
-        meta: live.meta || canon.meta
-      };
-    });
-  }, [canonicalLeninsky, stations]);
+      // 2. По координатам (радиус ~150 метров)
+      const lat1 = s.lat ?? s.latitude;
+      const lon1 = s.lon ?? s.lng ?? s.longitude;
+      const lat2 = canon.lat ?? canon.latitude;
+      const lon2 = canon.lon ?? canon.lng ?? canon.longitude;
+      if (lat1 && lon1 && lat2 && lon2) {
+        const dLat = Math.abs(lat1 - lat2);
+        const dLon = Math.abs(lon1 - lon2);
+        if (dLat < 0.002 && dLon < 0.003) return true;
+      }
 
-  // Calculate deficit statistics for Nagornaya (strictly out of 17)
+      // 3. По совпадению адреса
+      const c1 = cleanA(s.addr || s.address);
+      const c2 = cleanA(canon.addr || canon.address);
+      return Boolean(c1 && c2 && (c1.includes(c2) || c2.includes(c1)));
+    });
+
+    if (!live) return canon;
+
+    // Автоматически извлекаем свежую цену 95-го и время отметки из объекта prices_now
+    const p95 = live.prices_now?.['95'] || live.prices_now?.['95+'];
+    const pAny = p95 || live.prices_now?.['92'] || live.prices_now?.['dt'];
+    const resolvedPrice = live.price || p95?.p || canon.price;
+    const resolvedTime = live.last_driver_at || live.last_at || pAny?.t || canon.last_driver_at;
+
+    return {
+      ...canon,
+      ...live,
+      price: resolvedPrice,
+      last_driver_at: resolvedTime,
+      last_at: resolvedTime,
+      name: live.name || canon.name,
+      brand: live.brand || canon.brand,
+      addr: live.addr || canon.addr,
+      lat: live.lat ?? canon.lat,
+      lon: live.lon ?? canon.lon,
+      meta: live.meta || canon.meta
+    };
+  };
+
+  const nagornayaAll = useMemo(() => canonicalNagornaya.map(mergeStationData), [canonicalNagornaya, stations]);
+  const leninskyAll = useMemo(() => canonicalLeninsky.map(mergeStationData), [canonicalLeninsky, stations]);
+
   const nagornayaStats = useMemo(() => {
     let available = 0;
     let free = 0;
@@ -207,7 +197,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
     return { total, available, free, queue, empty: Math.max(0, total - available) };
   }, [nagornayaAll]);
 
-  // Calculate deficit statistics for Leninsky (strictly out of 11)
   const leninskyStats = useMemo(() => {
     let available = 0;
     let free = 0;
@@ -229,18 +218,15 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
     return { total, available, free, queue, empty: Math.max(0, total - available) };
   }, [leninskyAll]);
 
-  // Current active district stations
   const activeDistrictList = currentDistrict === 'nagornaya' ? nagornayaAll : leninskyAll;
   const currentStats = currentDistrict === 'nagornaya' ? nagornayaStats : leninskyStats;
 
-  // Filtered and searched stations
   const displayedStations = useMemo(() => {
     return activeDistrictList.filter((s) => {
       const fuel = check95Fuel(s);
       const brand = (s.brand || s.name || '').toLowerCase();
       const addr = (s.addr || s.address || '').toLowerCase();
 
-      // Brand / status filter
       if (activeFilter === 'available_only') {
         if (fuel.state === 'none') return false;
       } else if (activeFilter === 'no_queue') {
@@ -253,9 +239,7 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
       } else if (activeFilter === 'teboil') {
         if (brand.indexOf('teboil') === -1 && brand.indexOf('тебойл') === -1) return false;
       }
-      // Note: when activeFilter === 'all', all stations are displayed
 
-      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchesAddr = addr.includes(q);
@@ -266,7 +250,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
 
       return true;
     }).sort((a, b) => {
-      // Prioritize free available stations first (0), then queue stations (1), then empty stations (2)
       const aFuel = check95Fuel(a);
       const bFuel = check95Fuel(b);
       const aScore = aFuel.state === 'none' ? 2 : isQueueStation(a) ? 1 : 0;
@@ -277,7 +260,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
-      {/* Top Application Bar */}
       <Header
         lastUpdatedTime={lastUpdatedTime}
         isRefreshing={isRefreshing}
@@ -286,9 +268,7 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
         onOpenInfo={() => setIsInfoOpen(true)}
       />
 
-      {/* Main Content Area: Mobile-optimised, gracefully expands to 2 columns on tablet/desktop */}
       <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
-        {/* District Switcher Tabs and Quick Filters */}
         <Tabs
           currentDistrict={currentDistrict}
           onSelectDistrict={(tab) => {
@@ -305,7 +285,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
           onSearchChange={setSearchQuery}
         />
 
-        {/* Deficit Summary Gauge Card */}
         <DeficitSummary
           districtTitle={currentDistrict === 'nagornaya' ? 'Нагорная часть' : 'Ленинский район'}
           totalStations={currentStats.total}
@@ -315,7 +294,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
           emptyCount={currentStats.empty}
         />
 
-        {/* Section Heading & Result Count */}
         <div className="flex items-center justify-between text-xs px-1 text-slate-400">
           <div className="flex items-center gap-1.5 font-semibold text-slate-300">
             <Layers className="w-3.5 h-3.5 text-emerald-400" />
@@ -336,7 +314,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
           )}
         </div>
 
-        {/* Station Cards List: 1 col on mobile, 2 cols on tablet/desktop */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pb-8" data-testid="station-list">
           {displayedStations.length > 0 ? (
             displayedStations.map((station) => (
@@ -369,7 +346,6 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
         </div>
       </main>
 
-      {/* Floating Toast Notification for manual and automatic updates */}
       {toast && (
         <aside
           role="status"
@@ -417,10 +393,8 @@ const loadStations = useCallback(async (showIndicator = true, isManual = false) 
         </aside>
       )}
 
-      {/* Info Modal */}
       <InfoModal isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />
 
-      {/* Footer Info */}
       <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-[11px] text-slate-400">
         <p className="max-w-md mx-auto">
           Бензин Радар НН v2.0 · Оперативный мониторинг наличия АИ-95, очередей и лимитов на АЗС Нижнего Новгорода

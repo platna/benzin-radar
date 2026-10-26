@@ -1,35 +1,7 @@
-export interface Station {
-  id?: string | number;
-  osm_id?: string | number;
-  name?: string;
-  brand?: string;
-  addr?: string;
-  address?: string;
-  lat: number;
-  lon: number;
-  latitude?: number;
-  longitude?: number;
-  lng?: number;
-  status?: string | null;
-  fuels_now?: string;
-  detail?: string;
-  confidence_base?: number;
-  last_at?: string;
-  last_driver_at?: string | null;
-  last_auto_at?: string | null;
-  fuel_class?: string | null;
-  class_name?: string | null;
-  svc?: string | null;
-  svc_fresh?: boolean;
-  distance_km?: number;
-  confirmations?: number;
-  meta?: any;
-  svc_only?: boolean;
-  [key: string]: any;
-}
+import { Station } from '../types/station';
 
 export const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbyUPXLErRCVsppYkzCeAuCNFoYPq_I8DqMI48pE5XOa_odGWhPOYZE5wOLZeqvohKfe/exec";
-export const GDEBENZ_URL = "https://corsproxy.io/?url=https://gdebenz.ru/api/nearby?lat=56.3269&lon=44.0059&radius_km=25&limit=200";
+export const GDEBENZ_URL = "https://corsproxy.io/?url=https://gdebenz.ru/api/stations?lat1=56.22&lon1=43.82&lat2=56.38&lon2=44.15";
 
 export function isBorOrOutskirts(s: Partial<Station>): boolean {
   const addr = (s.addr || s.address || "").toLowerCase();
@@ -82,7 +54,7 @@ export function isNagornayaWhitelist(s: Partial<Station>): boolean {
   return false;
 }
 
-// 2. ЛЕНИНСКИЙ РАЙОН
+// 2. ЛЕНИНСКИЙ РАЙОН (11 АЗС)
 export function isLeninskyDistrict(s: Partial<Station>): boolean {
   if (isBorOrOutskirts(s)) return false;
   const brand = (s.brand || s.name || "").toLowerCase();
@@ -141,64 +113,126 @@ export function cleanDetailFuels(detail?: string): string | null {
   return null;
 }
 
-// Точная проверка 95-го бензина (Строго по логике сайта ГдеБЕНЗ)
+// Извлекаем точные виды топлива без ложных срабатываний
+function parseFuelsList(rawStr?: string): { has95: boolean; has95Plus: boolean; mentionsOtherOnly: boolean } {
+  if (!rawStr) return { has95: false, has95Plus: false, mentionsOtherOnly: false };
+
+  // Разбиваем строку на отдельные токены по запятым и спецсимволам
+  const tokens = rawStr
+    .toLowerCase()
+    .split(/[,·;\/\n]+/)
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  let has95 = false;
+  let has95Plus = false;
+  let hasOtherFuel = false;
+
+  for (const token of tokens) {
+    // Точная проверка 95+ (Экто / G-Drive)
+    if (
+      token === '95+' || 
+      token === 'аи-95+' || 
+      token === 'аи95+' || 
+      token.includes('95+') || 
+      token.includes('экто') || 
+      token.includes('g-drive') || 
+      token.includes('g95')
+    ) {
+      has95Plus = true;
+    } 
+    // Точная проверка стандартного 95 (строго без плюса!)
+    else if (
+      token === '95' || 
+      token === 'аи-95' || 
+      token === 'аи95' || 
+      token === '95 евро'
+    ) {
+      has95 = true;
+    } else if (
+      token.includes('92') || 
+      token.includes('дт') || 
+      token.includes('дизель') || 
+      token.includes('100') || 
+      token.includes('газ')
+    ) {
+      hasOtherFuel = true;
+    }
+  }
+
+  const mentionsOtherOnly = hasOtherFuel && !has95 && !has95Plus;
+  return { has95, has95Plus, mentionsOtherOnly };
+}
+
+// Строгая проверка наличия топлива по правилам ГдеБЕНЗ
 export function check95Fuel(s: Partial<Station>): FuelCheckResult {
   const status = (s.status || "").toLowerCase();
   const detail = (s.detail || "").toLowerCase();
-  const fuelsNow = (s.fuels_now || "").toLowerCase();
 
-  // 1. Проверка на закрытие / пустую АЗС
+  // 1. АЗС закрыта, пуста или только ДТ
+  if (s.dt_only === 1 || s.dt_only === true || s.dt_only === "1") {
+    return { state: "none", has95: false, has95Plus: false };
+  }
   if (!status || status === "no" || status === "empty" || status === "none" || status === "closed") {
     return { state: "none", has95: false, has95Plus: false };
   }
-  if (/нет 95|95 нет|без 95|нет топлива|перерыв|слив/i.test(detail)) {
+  if (/нет 95|95 нет|без 95|нет топлива|заправка не работает|перерыв|слив/i.test(detail)) {
     return { state: "none", has95: false, has95Plus: false };
   }
-
-  const has95InFuels = /(?:^|[,\s])95(?:\+|plus)?(?:[,\s]|$)/i.test(fuelsNow);
-  const has95PlusInFuels = /(?:^|[,\s])95\+/i.test(fuelsNow) || /g[-_ ]?95|g-drive|экто/i.test(fuelsNow);
-
-  const has95InDetail = /(?:^|[^\d])95(?:\+|plus)?(?:[^\d]|$)/i.test(detail);
-  const has95PlusInDetail = /(?:^|[^\d])95\+/i.test(detail) || /g[-_ ]?95|g-drive|экто/i.test(detail);
 
   let has95 = false;
   let has95Plus = false;
 
-  // 2. Главный ориентир — поле fuels_now (как на самом сайте ГдеБЕНЗ)
+  // 2. ПРИОРИТЕТ 1: fuels_now (официальная сводка ГдеБЕНЗ)
   if (s.fuels_now && s.fuels_now.trim().length > 0) {
-    has95 = has95InFuels;
-    has95Plus = has95PlusInFuels;
-  } else {
-    // 3. Если fuels_now пустой, проверяем отметку detail
-    const freshDetailFuels = cleanDetailFuels(s.detail);
-    const detailMentionsFuel = /(?:^|[^\dа-яa-z]|аи[- ]?)(92|95|98|100|дт|дизель|газ)(?:[^\dа-яa-z]|$)/i.test(freshDetailFuels || "");
-    
-    if (detailMentionsFuel) {
-      has95 = has95InDetail;
-      has95Plus = has95PlusInDetail;
-    } else {
-      // Если водитель просто нажал "Есть топливо" и не выбрал виды, считаем 95 есть
-      has95 = true; 
+    const parsed = parseFuelsList(s.fuels_now);
+    has95 = parsed.has95;
+    has95Plus = parsed.has95Plus;
+
+    // Если в отметке только ДТ или 92 (без 95) — статус СТРОГО none
+    if (parsed.mentionsOtherOnly) {
+      return { state: "none", has95: false, has95Plus: false };
     }
+  } 
+  // 3. ПРИОРИТЕТ 2: Свежая отметка detail от водителя
+  else if (s.detail && s.detail.trim().length > 0) {
+    const cleaned = cleanDetailFuels(s.detail);
+    const parsed = parseFuelsList(cleaned || s.detail);
+    has95 = parsed.has95;
+    has95Plus = parsed.has95Plus;
+
+    if (parsed.mentionsOtherOnly) {
+      return { state: "none", has95: false, has95Plus: false };
+    }
+  } 
+  // 4. ПРИОРИТЕТ 3: Цены prices_now (если есть цена на 95 — бензин подтвержден)
+  else if (s.prices_now && typeof s.prices_now === 'object') {
+    if (s.prices_now['95']) has95 = true;
+    if (s.prices_now['95+']) has95Plus = true;
   }
 
-  // Если 95 не нашли — отсекаем!
-  if (!has95) {
+  // Если нет ни обычного 95, ни 95+ — считаем, что 95-го нет (красный)
+  if (!has95 && !has95Plus) {
     return { state: "none", has95: false, has95Plus: false };
   }
 
+  // 5. Определение очереди
   let state: "available" | "queue" = "available";
   const queueTraffic = formatQueueTrafficLight(s.detail);
-  if (status === "queue" || status === "warning" || Boolean(s.meta?.queue)) {
-    state = "queue";
-  } else if (queueTraffic && (queueTraffic.level === "yellow" || queueTraffic.level === "red")) {
+
+  if (
+    s.conflict === "queue" || 
+    status === "queue" || 
+    status === "warning" || 
+    Boolean(s.meta?.queue) ||
+    (queueTraffic && (queueTraffic.level === "yellow" || queueTraffic.level === "red"))
+  ) {
     state = "queue";
   }
 
   return { state, has95, has95Plus };
 }
 
-// Экспорт для App.tsx и StationCard.tsx
 export function isQueueStation(s: Partial<Station>): boolean {
   const fuel = check95Fuel(s);
   if (fuel.state === "none") return false;
@@ -237,16 +271,20 @@ export interface StationFuelsInfo {
   label?: string;
 }
 
-// Честный сбор списка топлива (Приоритет: fuels_now -> detail -> паспорт)
+// Честный сбор списка топлива без выдуманных данных по паспорту
 export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo {
   const status = (station.status || '').toLowerCase();
   const detail = (station.detail || '').toLowerCase();
+
+  if (station.dt_only === 1 || station.dt_only === true) {
+    return { text: 'только ДТ', source: 'live', label: 'только дизель' };
+  }
 
   if (status === 'no' || status === 'empty' || status === 'none' || /нет топлива|заправка не работает/i.test(detail)) {
     return { text: 'нет топлива', source: 'live', label: 'по последней отметке' };
   }
 
-  // 1. ВЫСШИЙ ПРИОРИТЕТ: fuels_now (именно это ГдеБЕНЗ рисует в серых плашках)
+  // 1. ВЫСШИЙ ПРИОРИТЕТ: fuels_now
   if (station.fuels_now && station.fuels_now.trim().length > 0) {
     const formatted = station.fuels_now
       .split(',')
@@ -258,32 +296,17 @@ export function getStationFuelsInfo(station: Partial<Station>): StationFuelsInfo
     }
   }
 
-  // 2. ВТОРОЙ ПРИОРИТЕТ: Свежая отметка водителя из текста
+  // 2. ВТОРОЙ ПРИОРИТЕТ: Свежая отметка водителя
   const cleanedDetail = cleanDetailFuels(station.detail);
   if (cleanedDetail && cleanedDetail.length > 0) {
     const formatted = cleanedDetail.split(/[,·;\s]+/).filter(Boolean).map(f => f.toUpperCase()).join(', ');
     return { text: formatted || cleanedDetail, source: 'live', label: 'по последней отметке' };
   }
 
-  // 3. Если вообще пусто, но статус "yes" — берем из паспорта (meta.f)
-  if (station.meta && Array.isArray(station.meta.f) && station.meta.f.length > 0) {
-    const fList = (station.meta.f as string[]).map((x: string) => x.toLowerCase().trim());
-    const result: string[] = [];
-    if (fList.includes('92')) result.push('92');
-    if (fList.includes('95')) result.push('95');
-    if (fList.includes('100')) result.push('100');
-    if (fList.includes('dt') || fList.includes('дт')) result.push('ДТ');
-    if (fList.includes('lpg') || fList.includes('газ') || fList.includes('суг')) result.push('Газ');
-
-    if (result.length > 0) {
-      return { text: result.join(', '), source: 'meta', label: 'по паспорту АЗС' };
-    }
-  }
-
-  return { text: 'данные не указаны', source: 'last_known', label: 'нет информации' };
+  // 3. Честный статус: если данных нет, не выдумываем по паспорту
+  return { text: 'нет свежих отметок', source: 'last_known', label: 'нет информации' };
 }
 
-// Честный класс топлива: возвращает null, если на сайте "пока никто не отмечал"
 export function getFuelClass(s: Partial<Station>): string | null {
   const rawClass = s.fuel_class || s.class_name;
   if (!rawClass) return null;
@@ -332,8 +355,7 @@ export function getFreshnessText(utcDateStr?: string): { timeMsk: string; diffTe
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
 
-    // Если отметке больше 24 часов — считаем, что свежих данных нет
-    if (diffMinutes >= 1440) {
+    if (diffMinutes >= 1440 || diffMinutes < -120) {
       return { timeMsk: "--:--", diffText: "нет отметок", full: "нет свежих отметок" };
     }
 
