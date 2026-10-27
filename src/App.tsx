@@ -22,6 +22,8 @@ interface ToastNotification {
   time: string;
 }
 
+const PULL_THRESHOLD = 70; // Порог в пикселях для срабатывания обновления
+
 export default function App() {
   const [stations, setStations] = useState<Station[]>(() => {
     try {
@@ -50,7 +52,13 @@ export default function App() {
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
-  // Время последнего запроса (чтобы не спамить при случайных переключениях на пару секунд)
+  // Для жеста «Потяни вниз для обновления» (Pull-to-refresh)
+  const [pullOffset, setPullOffset] = useState<number>(0);
+  const touchStartY = useRef<number>(0);
+  const touchStartX = useRef<number>(0);
+  const isPullingRef = useRef<boolean>(false);
+
+  // Время последнего запроса (защита от случайного частого клика)
   const lastFetchTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -98,7 +106,6 @@ export default function App() {
       console.warn('Сбой загрузки данных:', e);
     }
 
-    // Всплывающее уведомление срабатывает ВСЕГДА: и при входе, и при возвращении через пару часов!
     setToast({
       id: Date.now(),
       type: fetched ? (isManual ? 'manual' : 'auto') : 'auto',
@@ -112,16 +119,74 @@ export default function App() {
     if (showIndicator) setTimeout(() => setIsRefreshing(false), 400);
   }, []);
 
+  // Обработчики жеста Pull-to-refresh
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Активируем жест только если пользователь находится на самом верху страницы
+    if (window.scrollY === 0) {
+      touchStartY.current = e.touches[0].clientY;
+      touchStartX.current = e.touches[0].clientX;
+      isPullingRef.current = true;
+    } else {
+      isPullingRef.current = false;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPullingRef.current || isRefreshing) return;
+    if (window.scrollY > 0) {
+      isPullingRef.current = false;
+      setPullOffset(0);
+      return;
+    }
+
+    const currentY = e.touches[0].clientY;
+    const currentX = e.touches[0].clientX;
+    const deltaY = currentY - touchStartY.current;
+    const deltaX = Math.abs(currentX - touchStartX.current);
+
+    // Если палец двигается горизонтально, отменяем
+    if (deltaX > deltaY) {
+      isPullingRef.current = false;
+      setPullOffset(0);
+      return;
+    }
+
+    if (deltaY > 0) {
+      // Плавное сопротивление натяжения
+      const damped = Math.min(100, Math.pow(deltaY, 0.85) * 2.2);
+      setPullOffset(damped);
+    } else {
+      setPullOffset(0);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isPullingRef.current) return;
+    isPullingRef.current = false;
+
+    // Если дотянули ниже порога — запускаем обновление!
+    if (pullOffset >= PULL_THRESHOLD && !isRefreshing) {
+      // Приятный виброотклик на смартфоне
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(20);
+        } catch {}
+      }
+      loadStations(true, true);
+    }
+    setPullOffset(0);
+  };
+
   useEffect(() => {
     // 1. Показываем плашку сразу при открытии сайта
     loadStations(false, true);
 
-    // 2. Фоновое обновление каждые 5 минут
+    // 2. Фоновое автообновление каждые 5 минут
     const interval = setInterval(() => {
       loadStations(false, false);
     }, 5 * 60 * 1000);
 
-    // 3. Если свернул приложение на телефоне и вернулся через пару часов — сразу качаем свежие данные с уведомлением!
+    // 3. Возвращение в приложение со смартфона
     const handleResume = () => {
       if (document.visibilityState === 'visible') {
         const secondsSinceLast = (Date.now() - lastFetchTimeRef.current) / 1000;
@@ -147,11 +212,9 @@ export default function App() {
   // Жесткая привязка: ТОЛЬКО по точному OSM ID либо по точному совпадению улицы и дома
   const mergeStationData = (canon: Station) => {
     const live = stations.find((s) => {
-      // 1. Приоритет: точный OSM ID
       if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
       if (s.id && canon.osm_id && String(s.id) === String(canon.osm_id)) return true;
 
-      // 2. Если OSM ID нет — проверяем бренд
       const sBrand = (s.brand || s.name || '').toLowerCase();
       const cBrand = (canon.brand || canon.name || '').toLowerCase();
       const sameBrand = (sBrand.includes('лукойл') && cBrand.includes('лукойл')) ||
@@ -160,7 +223,6 @@ export default function App() {
 
       if (!sameBrand) return false;
 
-      // 3. Строго проверяем улицу и номер дома вместе
       const cleanA = (a?: string) => (a || '').toLowerCase().replace(/[^0-9а-яa-z]/gi, '');
       const a1 = cleanA(s.addr || s.address);
       const a2 = cleanA(canon.addr || canon.address);
@@ -264,7 +326,45 @@ export default function App() {
   }, [activeDistrictList, activeFilter, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div
+      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200 relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Плашка индикатора жеста Pull-to-refresh */}
+      <div
+        className="fixed top-2 left-1/2 -translate-x-1/2 z-50 transition-all duration-200 pointer-events-none"
+        style={{
+          transform: `translate(-50%, ${pullOffset > 0 ? pullOffset - 15 : isRefreshing ? 55 : -70}px)`,
+          opacity: pullOffset > 0 || isRefreshing ? 1 : 0
+        }}
+      >
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/95 border border-emerald-500/40 shadow-xl shadow-black/80 text-xs font-semibold text-emerald-300 backdrop-blur-md">
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${
+              isRefreshing
+                ? 'animate-spin text-emerald-400'
+                : pullOffset >= PULL_THRESHOLD
+                ? 'text-emerald-400'
+                : 'text-slate-400'
+            }`}
+            style={
+              !isRefreshing
+                ? { transform: `rotate(${Math.min(360, pullOffset * 4)}deg)` }
+                : undefined
+            }
+          />
+          <span>
+            {isRefreshing
+              ? 'Обновление данных...'
+              : pullOffset >= PULL_THRESHOLD
+              ? 'Отпустите для обновления'
+              : 'Потяните для обновления'}
+          </span>
+        </div>
+      </div>
+
       <Header
         lastUpdatedTime={lastUpdatedTime}
         isRefreshing={isRefreshing}
