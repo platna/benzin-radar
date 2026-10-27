@@ -205,20 +205,20 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
             </div>
           )}
 
-          {/* Время отметки водителя */}
-          <div className="text-[11px] text-right shrink-0">
+          {/* Время отметки водителя (компактно, никогда не вылезает за край) */}
+          <div className="text-[10px] sm:text-[11px] text-right shrink-0">
             {driverTime && !isSvcOnly ? (
               <span className="text-slate-300 inline-flex items-center gap-1">
                 <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                <span>Водитель: {driverFreshness.diffText}</span>
+                <span>{driverFreshness.diffText}</span>
                 {driverFreshness.timeMsk !== '--:--' && (
-                  <span className="text-slate-500 font-normal">({driverFreshness.timeMsk})</span>
+                  <span className="text-slate-400 font-normal">({driverFreshness.timeMsk})</span>
                 )}
               </span>
             ) : isSvcOnly && autoTime ? (
               <span className="text-teal-400 font-medium inline-flex items-center gap-1">
                 <Clock className="w-2.5 h-2.5 shrink-0" />
-                <span>Автооплата: {autoFreshness.diffText}</span>
+                <span>Авто: {autoFreshness.diffText}</span>
               </span>
             ) : (
               <span className="text-slate-500 inline-flex items-center gap-1">
