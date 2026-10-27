@@ -49,7 +49,9 @@ export default function App() {
   });
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
-  const isFirstLoadRef = useRef(true);
+
+  // Время последнего запроса (чтобы не спамить при случайных переключениях на пару секунд)
+  const lastFetchTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!toast) return;
@@ -85,6 +87,7 @@ export default function App() {
           setIsLiveApi(true);
           setLastUpdatedTime(`МСК ${currentMsk}`);
           fetched = true;
+          lastFetchTimeRef.current = Date.now();
           try {
             localStorage.setItem('cached_live_stations', JSON.stringify(list));
             localStorage.setItem('cached_live_time', `МСК ${currentMsk}`);
@@ -95,34 +98,51 @@ export default function App() {
       console.warn('Сбой загрузки данных:', e);
     }
 
-    if (!isFirstLoadRef.current || isManual) {
-      setToast({
-        id: Date.now(),
-        type: fetched ? (isManual ? 'manual' : 'auto') : 'auto',
-        title: fetched ? 'Данные успешно обновлены' : 'Ошибка обновления',
-        message: fetched
-          ? 'Синхронизированы оба района: 17 Нагорная + 10 Ленинский'
-          : 'Показаны последние сохраненные данные.',
-        time: `МСК ${currentMsk}`
-      });
-    }
+    // Всплывающее уведомление срабатывает ВСЕГДА: и при входе, и при возвращении через пару часов!
+    setToast({
+      id: Date.now(),
+      type: fetched ? (isManual ? 'manual' : 'auto') : 'auto',
+      title: fetched ? 'Данные успешно обновлены' : 'Ошибка обновления',
+      message: fetched
+        ? 'Синхронизированы оба района: 17 Нагорная + 11 Ленинский'
+        : 'Показаны последние сохраненные данные.',
+      time: `МСК ${currentMsk}`
+    });
 
-    if (isFirstLoadRef.current) isFirstLoadRef.current = false;
     if (showIndicator) setTimeout(() => setIsRefreshing(false), 400);
   }, []);
 
   useEffect(() => {
-    loadStations(false, false);
+    // 1. Показываем плашку сразу при открытии сайта
+    loadStations(false, true);
+
+    // 2. Фоновое обновление каждые 5 минут
     const interval = setInterval(() => {
       loadStations(false, false);
     }, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    // 3. Если свернул приложение на телефоне и вернулся через пару часов — сразу качаем свежие данные с уведомлением!
+    const handleResume = () => {
+      if (document.visibilityState === 'visible') {
+        const secondsSinceLast = (Date.now() - lastFetchTimeRef.current) / 1000;
+        if (secondsSinceLast > 60) {
+          loadStations(true, true);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleResume);
+    window.addEventListener('focus', handleResume);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleResume);
+      window.removeEventListener('focus', handleResume);
+    };
   }, [loadStations]);
 
   const canonicalNagornaya = useMemo(() => TARGET_STATIONS_NN.filter(isNagornayaWhitelist), []);
   const canonicalLeninsky = useMemo(() => TARGET_STATIONS_NN.filter(isLeninskyDistrict), []);
-
-  const cleanStr = (s?: string) => (s || '').toLowerCase().replace(/[^a-zа-я0-9]/g, '');
 
   // Жесткая привязка: ТОЛЬКО по точному OSM ID либо по точному совпадению улицы и дома
   const mergeStationData = (canon: Station) => {
@@ -140,7 +160,7 @@ export default function App() {
 
       if (!sameBrand) return false;
 
-      // 3. Строго проверяем улицу и номер дома вместе (Магистральная 6 больше не спутается со Стеклозаводским 6!)
+      // 3. Строго проверяем улицу и номер дома вместе
       const cleanA = (a?: string) => (a || '').toLowerCase().replace(/[^0-9а-яa-z]/gi, '');
       const a1 = cleanA(s.addr || s.address);
       const a2 = cleanA(canon.addr || canon.address);
