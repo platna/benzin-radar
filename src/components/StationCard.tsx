@@ -289,11 +289,12 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
 
       {/* Кнопки навигации */}
       <div className="space-y-1.5">
+        {/* Главная кнопка маршрута (Стильный синий цвет навигатора) */}
         <a
           href={yandexUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-red-950/60 active:scale-[0.98] transition-all"
+          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-950/60 active:scale-[0.98] transition-all cursor-pointer"
           title="Открыть маршрут на авто с пробками в Яндекс Картах"
         >
           <span className="text-sm">🧭</span>

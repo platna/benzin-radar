@@ -22,7 +22,7 @@ interface ToastNotification {
   time: string;
 }
 
-const PULL_THRESHOLD = 70; // Порог в пикселях для срабатывания обновления
+const PULL_THRESHOLD = 70;
 
 export default function App() {
   const [stations, setStations] = useState<Station[]>(() => {
@@ -52,13 +52,10 @@ export default function App() {
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
-  // Для жеста «Потяни вниз для обновления» (Pull-to-refresh)
   const [pullOffset, setPullOffset] = useState<number>(0);
   const touchStartY = useRef<number>(0);
   const touchStartX = useRef<number>(0);
   const isPullingRef = useRef<boolean>(false);
-
-  // Время последнего запроса (защита от случайного частого клика)
   const lastFetchTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -119,9 +116,7 @@ export default function App() {
     if (showIndicator) setTimeout(() => setIsRefreshing(false), 400);
   }, []);
 
-  // Обработчики жеста Pull-to-refresh
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Активируем жест только если пользователь находится на самом верху страницы
     if (window.scrollY === 0) {
       touchStartY.current = e.touches[0].clientY;
       touchStartX.current = e.touches[0].clientX;
@@ -144,7 +139,6 @@ export default function App() {
     const deltaY = currentY - touchStartY.current;
     const deltaX = Math.abs(currentX - touchStartX.current);
 
-    // Если палец двигается горизонтально, отменяем
     if (deltaX > deltaY) {
       isPullingRef.current = false;
       setPullOffset(0);
@@ -152,7 +146,6 @@ export default function App() {
     }
 
     if (deltaY > 0) {
-      // Плавное сопротивление натяжения
       const damped = Math.min(100, Math.pow(deltaY, 0.85) * 2.2);
       setPullOffset(damped);
     } else {
@@ -164,9 +157,7 @@ export default function App() {
     if (!isPullingRef.current) return;
     isPullingRef.current = false;
 
-    // Если дотянули ниже порога — запускаем обновление!
     if (pullOffset >= PULL_THRESHOLD && !isRefreshing) {
-      // Приятный виброотклик на смартфоне
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try {
           navigator.vibrate(20);
@@ -178,15 +169,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    // 1. Показываем плашку сразу при открытии сайта
     loadStations(false, true);
 
-    // 2. Фоновое автообновление каждые 5 минут
     const interval = setInterval(() => {
       loadStations(false, false);
     }, 5 * 60 * 1000);
 
-    // 3. Возвращение в приложение со смартфона
     const handleResume = () => {
       if (document.visibilityState === 'visible') {
         const secondsSinceLast = (Date.now() - lastFetchTimeRef.current) / 1000;
@@ -209,7 +197,6 @@ export default function App() {
   const canonicalNagornaya = useMemo(() => TARGET_STATIONS_NN.filter(isNagornayaWhitelist), []);
   const canonicalLeninsky = useMemo(() => TARGET_STATIONS_NN.filter(isLeninskyDistrict), []);
 
-  // Жесткая привязка: ТОЛЬКО по точному OSM ID либо по точному совпадению улицы и дома
   const mergeStationData = (canon: Station) => {
     const live = stations.find((s) => {
       if (s.osm_id && canon.osm_id && String(s.osm_id) === String(canon.osm_id)) return true;
@@ -373,7 +360,8 @@ export default function App() {
         onOpenInfo={() => setIsInfoOpen(true)}
       />
 
-      <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
+      {/* Адаптированный контейнер: компактный на мобилках, просторный дашборд на ПК */}
+      <main className="flex-1 w-full max-w-md md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <Tabs
           currentDistrict={currentDistrict}
           onSelectDistrict={(tab) => {
@@ -412,14 +400,15 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveFilter('all')}
-              className="text-[11px] text-emerald-400 hover:underline"
+              className="text-[11px] text-emerald-400 hover:underline cursor-pointer"
             >
               Сбросить фильтр
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pb-8" data-testid="station-list">
+        {/* Сетка АЗС: 1 колонка на мобилках, 2 на планшетах, 3 на больших мониторах ПК! */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5 pb-10" data-testid="station-list">
           {displayedStations.length > 0 ? (
             displayedStations.map((station) => (
               <StationCard
@@ -428,7 +417,7 @@ export default function App() {
               />
             ))
           ) : (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center space-y-3 my-4">
+            <div className="col-span-full bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center space-y-3 my-4">
               <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
                 <AlertCircle className="w-6 h-6" />
               </div>
@@ -442,7 +431,7 @@ export default function App() {
                   setActiveFilter('all');
                   setSearchQuery('');
                 }}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-700"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-700 cursor-pointer"
               >
                 Показать все АЗС
               </button>
@@ -489,7 +478,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
               aria-label="Закрыть уведомление"
             >
               <X className="w-3.5 h-3.5" />
