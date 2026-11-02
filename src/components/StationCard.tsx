@@ -22,7 +22,8 @@ import {
   Clock,
   Fuel,
   AlertTriangle,
-  PauseCircle
+  PauseCircle,
+  Navigation
 } from 'lucide-react';
 
 interface StationCardProps {
@@ -95,7 +96,6 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
 
   const fuelsInfo = getStationFuelsInfo(station);
 
-  // Компактный человекопонятный лейбл источника для мобилок
   let sourceBadge = null;
   if (fuelsInfo.text !== 'нет свежих отметок' && fuelsInfo.text !== 'нет топлива') {
     if (fuelsInfo.label === 'по последней отметке') {
@@ -108,188 +108,200 @@ export const StationCard: React.FC<StationCardProps> = ({ station }) => {
   }
 
   return (
-    <article className="bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-3 sm:p-4 shadow-lg transition-all duration-200">
-      {/* Верхний ряд: Бренд и статус наличия */}
-      <div className="flex items-center justify-between gap-2 mb-1.5">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 border ${brandInfo.accentBg} ${brandInfo.badgeBorder}`}
-          >
-            {brandInfo.type === 'lukoil' ? (
-              <span className="font-black text-xs sm:text-sm tracking-tighter text-red-400">ЛК</span>
-            ) : brandInfo.type === 'gpn' ? (
-              <span className="font-black text-xs sm:text-sm tracking-tighter text-sky-400">ГПН</span>
-            ) : brandInfo.type === 'teboil' ? (
-              <span className="font-black text-xs sm:text-sm tracking-tighter text-amber-400">TB</span>
-            ) : (
-              <Fuel className="w-4 h-4 text-slate-400" />
-            )}
+    <article className="bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-slate-800 hover:border-slate-700 hover:-translate-y-0.5 rounded-2xl p-3 sm:p-4 shadow-lg transition-all duration-200 flex flex-col justify-between">
+      <div>
+        {/* Верхний ряд: Бренд и статус наличия */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 border ${brandInfo.accentBg} ${brandInfo.badgeBorder}`}
+            >
+              {brandInfo.type === 'lukoil' ? (
+                <span className="font-black text-xs sm:text-sm tracking-tighter text-red-400">ЛК</span>
+              ) : brandInfo.type === 'gpn' ? (
+                <span className="font-black text-xs sm:text-sm tracking-tighter text-sky-400">ГПН</span>
+              ) : brandInfo.type === 'teboil' ? (
+                <span className="font-black text-xs sm:text-sm tracking-tighter text-amber-400">TB</span>
+              ) : (
+                <Fuel className="w-4 h-4 text-slate-400" />
+              )}
+            </div>
+
+            <h3 className="text-sm sm:text-base font-bold text-white truncate">
+              {station.name || brandInfo.displayName}
+            </h3>
           </div>
 
-          <h3 className="text-sm sm:text-base font-bold text-white truncate">
-            {station.name || brandInfo.displayName}
-          </h3>
-        </div>
-
-        <div
-          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border tracking-wide shadow-xs ${statusBannerClass}`}
-        >
-          {statusIcon}
-          <span>{statusText}</span>
-        </div>
-      </div>
-
-      {/* Адрес */}
-      <div className="flex items-start gap-1.5 text-xs text-slate-300 mb-2 leading-snug">
-        <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-500 mt-0.5" />
-        <span className="break-words font-medium">{station.addr || station.address || 'Нижний Новгород'}</span>
-      </div>
-
-      {/* Бейджи: 95+, Евро-5, Уверенность */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-        {fuelInfo.has95Plus ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-xs">
-            <span>✨</span>
-            <span>{brandInfo.premiumFuelName}</span>
-          </span>
-        ) : fuelInfo.has95 ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            АИ-95
-          </span>
-        ) : !station.status ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-400 border border-slate-700/80">
-            АИ-95: нет отметок
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30">
-            АИ-95: нет
-          </span>
-        )}
-
-        {getFuelClass(station) && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/80">
-            <Award className="w-3 h-3 text-emerald-400 shrink-0" />
-            <span>{getFuelClass(station)}</span>
-          </span>
-        )}
-
-        {confidencePct !== null && (
-          <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-800/80 text-sky-300 border border-slate-700/80"
-            title={`Вероятность наличия по данным ГдеБЕНЗ: ${confidencePct}%`}
+          <div
+            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border tracking-wide shadow-xs ${statusBannerClass}`}
           >
-            <ShieldCheck className="w-3 h-3 text-sky-400 shrink-0" />
-            <span>{confidencePct}%</span>
-          </span>
-        )}
-      </div>
+            {statusIcon}
+            <span>{statusText}</span>
+          </div>
+        </div>
 
-      {/* Информационный блок: Очередь, Время, Доступные виды топлива */}
-      <div className="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/90 mb-3 space-y-2 text-xs">
-        {/* Ряд 1: Очередь (слева) и Время отметки (справа) — строго в одну строчку */}
-        <div className="flex items-center justify-between gap-2">
-          {queueTraffic ? (
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] shrink-0 ${queueBadgeClass}`}>
-              <span>{queueTraffic.icon}</span>
-              <span className="font-medium">{queueTraffic.text}</span>
-            </div>
-          ) : fuelInfo.state === 'queue' ? (
-            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] shrink-0 bg-amber-500/10 text-amber-300 border-amber-500/30">
-              <span>🟡</span>
-              <span className="font-medium">Очередь</span>
-            </div>
+        {/* Адрес */}
+        <div className="flex items-start gap-1.5 text-xs text-slate-300 mb-2 leading-snug">
+          <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-500 mt-0.5" />
+          <span className="break-words font-medium">{station.addr || station.address || 'Нижний Новгород'}</span>
+        </div>
+
+        {/* Бейджи: 95+, Расстояние от водителя, Евро-5, Уверенность */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+          {fuelInfo.has95Plus ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-xs">
+              <span>✨</span>
+              <span>{brandInfo.premiumFuelName}</span>
+            </span>
+          ) : fuelInfo.has95 ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              АИ-95
+            </span>
+          ) : !station.status ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-400 border border-slate-700/80">
+              АИ-95: нет отметок
+            </span>
           ) : (
-            <div className="inline-flex items-center gap-1 text-slate-500 text-[11px] shrink-0">
-              <Clock className="w-3 h-3 text-slate-500" />
-              <span>Очередь: данных нет</span>
-            </div>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30">
+              АИ-95: нет
+            </span>
           )}
 
-          {/* Время отметки водителя (компактно, никогда не вылезает за край) */}
-          <div className="text-[10px] sm:text-[11px] text-right shrink-0">
-            {driverTime && !isSvcOnly ? (
-              <span className="text-slate-300 inline-flex items-center gap-1">
-                <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                <span>{driverFreshness.diffText}</span>
-                {driverFreshness.timeMsk !== '--:--' && (
-                  <span className="text-slate-400 font-normal">({driverFreshness.timeMsk})</span>
-                )}
-              </span>
-            ) : isSvcOnly && autoTime ? (
-              <span className="text-teal-400 font-medium inline-flex items-center gap-1">
-                <Clock className="w-2.5 h-2.5 shrink-0" />
-                <span>Авто: {autoFreshness.diffText}</span>
-              </span>
-            ) : (
-              <span className="text-slate-500 inline-flex items-center gap-1">
-                <Clock className="w-2.5 h-2.5 shrink-0" />
-                <span>{generalFreshness.diffText}</span>
-              </span>
-            )}
-          </div>
-        </div>
+          {/* Бейдж расстояния по GPS */}
+          {typeof station.distance_km === 'number' && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30"
+              title="Расстояние от вашего местоположения"
+            >
+              <Navigation className="w-2.5 h-2.5 text-blue-400 shrink-0" />
+              <span>{station.distance_km.toFixed(1)} км</span>
+            </span>
+          )}
 
-        {/* Перерывы и слив бензовоза */}
-        {breakInfo && (
-          <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] leading-snug">
-            <PauseCircle className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5" />
-            <span>{breakInfo}</span>
-          </div>
-        )}
+          {getFuelClass(station) && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/80">
+              <Award className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span>{getFuelClass(station)}</span>
+            </span>
+          )}
 
-        {/* Предупреждение: только другие виды топлива */}
-        {!isSvcOnly && !breakInfo && !isExpired && fuelInfo.state === 'none' && (
-          <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] leading-snug">
-            <span className="shrink-0">ℹ️</span>
-            {fuelsInfo.text === 'нет топлива' || station.status === 'no' || station.status === 'empty' ? (
-              <span>По отметкам водителей — на этой АЗС сейчас нет топлива.</span>
-            ) : (
-              <span>По отметкам водителей — бензина АИ-95 нет. В наличии: {fuelsInfo.text}.</span>
-            )}
-          </div>
-        )}
-
-        {/* Предупреждение: пока нет отметок */}
-        {!isSvcOnly && !breakInfo && isExpired && (
-          <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-400 text-[11px] leading-snug">
-            <span className="shrink-0">⚪</span>
-            <span>Пока нет свежих отметок водителей за сегодня.</span>
-          </div>
-        )}
-
-        {/* Лимиты */}
-        {limit && (
-          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-medium">
-            <AlertTriangle className="w-3 h-3 shrink-0" />
-            <span>Лимит: {limit}</span>
-          </div>
-        )}
-
-        {/* Ряд 2: Виды топлива (БЕЗ ТРОЕТОЧИЙ, никогда не обрезается!) */}
-        <div className="border-t border-slate-800/80 pt-2 flex items-start justify-between gap-2">
-          <div className="flex items-start gap-1.5 flex-1 min-w-0">
-            <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-            <div className="leading-snug">
-              <span className="text-slate-400 font-normal">
-                {isExpired ? 'Виды топлива: ' : 'В наличии: '}
-              </span>
-              <span className="font-bold text-white tracking-wide break-words">
-                {fuelsInfo.text}
-              </span>
-            </div>
-          </div>
-
-          {sourceBadge && (
-            <span className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/60 shrink-0 font-medium">
-              {sourceBadge}
+          {confidencePct !== null && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-800/80 text-sky-300 border border-slate-700/80"
+              title={`Вероятность наличия по данным ГдеБЕНЗ: ${confidencePct}%`}
+            >
+              <ShieldCheck className="w-3 h-3 text-sky-400 shrink-0" />
+              <span>{confidencePct}%</span>
             </span>
           )}
         </div>
+
+        {/* Информационный блок: Очередь, Время, Доступные виды топлива */}
+        <div className="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/90 mb-3 space-y-2 text-xs">
+          {/* Ряд 1: Очередь (слева) и Время отметки (справа) */}
+          <div className="flex items-center justify-between gap-1.5">
+            {queueTraffic ? (
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] shrink-0 ${queueBadgeClass}`}>
+                <span>{queueTraffic.icon}</span>
+                <span className="font-medium">{queueTraffic.text}</span>
+              </div>
+            ) : fuelInfo.state === 'queue' ? (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] shrink-0 bg-amber-500/10 text-amber-300 border-amber-500/30">
+                <span>🟡</span>
+                <span className="font-medium">Очередь</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 text-slate-500 text-[11px] shrink-0">
+                <Clock className="w-3 h-3 text-slate-500" />
+                <span>Очередь: данных нет</span>
+              </div>
+            )}
+
+            {/* Время отметки водителя (компактно, никогда не вылезает за край) */}
+            <div className="text-[10px] sm:text-[11px] text-right shrink-0">
+              {driverTime && !isSvcOnly ? (
+                <span className="text-slate-300 inline-flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                  <span>{driverFreshness.diffText}</span>
+                  {driverFreshness.timeMsk !== '--:--' && (
+                    <span className="text-slate-400 font-normal">({driverFreshness.timeMsk})</span>
+                  )}
+                </span>
+              ) : isSvcOnly && autoTime ? (
+                <span className="text-teal-400 font-medium inline-flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 shrink-0" />
+                  <span>Авто: {autoFreshness.diffText}</span>
+                </span>
+              ) : (
+                <span className="text-slate-500 inline-flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 shrink-0" />
+                  <span>{generalFreshness.diffText}</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Перерывы и слив бензовоза */}
+          {breakInfo && (
+            <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] leading-snug">
+              <PauseCircle className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5" />
+              <span>{breakInfo}</span>
+            </div>
+          )}
+
+          {/* Предупреждение: только другие виды топлива */}
+          {!isSvcOnly && !breakInfo && !isExpired && fuelInfo.state === 'none' && (
+            <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] leading-snug">
+              <span className="shrink-0">ℹ️</span>
+              {fuelsInfo.text === 'нет топлива' || station.status === 'no' || station.status === 'empty' ? (
+                <span>По отметкам водителей — на этой АЗС сейчас нет топлива.</span>
+              ) : (
+                <span>По отметкам водителей — бензина АИ-95 нет. В наличии: {fuelsInfo.text}.</span>
+              )}
+            </div>
+          )}
+
+          {/* Предупреждение: пока нет отметок */}
+          {!isSvcOnly && !breakInfo && isExpired && (
+            <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-400 text-[11px] leading-snug">
+              <span className="shrink-0">⚪</span>
+              <span>Пока нет свежих отметок водителей за сегодня.</span>
+            </div>
+          )}
+
+          {/* Лимиты */}
+          {limit && (
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-medium">
+              <AlertTriangle className="w-3 h-3 shrink-0" />
+              <span>Лимит: {limit}</span>
+            </div>
+          )}
+
+          {/* Ряд 2: Виды топлива (БЕЗ ТРОЕТОЧИЙ, всегда видны полностью) */}
+          <div className="border-t border-slate-800/80 pt-2 flex items-start justify-between gap-2">
+            <div className="flex items-start gap-1.5 flex-1 min-w-0">
+              <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+              <div className="leading-snug">
+                <span className="text-slate-400 font-normal">
+                  {isExpired ? 'Виды топлива: ' : 'В наличии: '}
+                </span>
+                <span className="font-bold text-white tracking-wide break-words">
+                  {fuelsInfo.text}
+                </span>
+              </div>
+            </div>
+
+            {sourceBadge && (
+              <span className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/60 shrink-0 font-medium">
+                {sourceBadge}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Кнопки навигации */}
+      {/* Кнопки навигации (Стильный синий цвет навигатора) */}
       <div className="space-y-1.5">
-        {/* Главная кнопка маршрута (Стильный синий цвет навигатора) */}
         <a
           href={yandexUrl}
           target="_blank"
