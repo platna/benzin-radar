@@ -4,7 +4,8 @@ import {
   isNagornayaWhitelist,
   isLeninskyDistrict,
   check95Fuel,
-  isQueueStation
+  isQueueStation,
+  GOOGLE_SCRIPT_API_URL
 } from './utils/fuelLogic';
 import { TARGET_STATIONS_NN } from './data/mockStations';
 import { Header } from './components/Header';
@@ -207,7 +208,7 @@ export default function App() {
     const currentMsk = getNowMsk();
 
     try {
-      const res = await fetch(`/api/stations?_t=${Date.now()}`);
+      const res = await fetch(`${GOOGLE_SCRIPT_API_URL}?_t=${Date.now()}`);
       if (res.ok) {
         const json = await res.json();
         const list = Array.isArray(json) ? json : json.stations;
