@@ -31,7 +31,7 @@ interface UserCoords {
 const PULL_THRESHOLD = 70;
 
 // ВЕРСИЯ ОБНОВЛЕНИЯ (поменяй на '2.2' в будущем, чтобы снова показать окно всем 1 раз)
-const CHANGELOG_VERSION = '2.1';
+const CHANGELOG_VERSION = '2.2';
 const CHANGELOG_STORAGE_KEY = 'benzin_seen_changelog_version';
 
 // Формула Гаверсинуса для точного расчета расстояния в километрах
@@ -685,12 +685,12 @@ export default function App() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-white">Что нового в Радаре</h2>
+                    <h2 className="text-base font-bold text-white">Важное обновление</h2>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       v{CHANGELOG_VERSION}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400">Большое обновление точности и удобства</p>
+                  <p className="text-[11px] text-slate-400">Новый адрес сайта и поиск АЗС по GPS</p>
                 </div>
               </div>
               <button
@@ -703,45 +703,38 @@ export default function App() {
               </button>
             </div>
 
-            <div className="p-4 space-y-3 text-xs leading-relaxed">
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <div className="font-bold text-emerald-400 flex items-center gap-1.5">
-                  <span>🎯</span>
-                  <span>Живые отметки водителей без задержек</span>
-                </div>
-                <p className="text-slate-300 text-[11px]">
-                  Радар теперь напрямую считывает свежие клики очевидцев («На месте») минута-в-минуту и точно отделяет обычный <b>АИ-95</b> от премиального <b>95+ (Экто / G-Drive)</b>.
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <div className="font-bold text-blue-400 flex items-center gap-1.5">
-                  <span>📍</span>
-                  <span>Умная кнопка «Рядом со мной» (GPS)</span>
-                </div>
-                <p className="text-slate-300 text-[11px]">
-                  Нажмите один раз — приложение само определит ваш район, покажет расстояние до каждой АЗС в километрах и поднимет наверх ближайшие заправки с бензином!
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                  <span>📲</span>
-                  <span>Жест «Потяни вниз» и версия для ПК</span>
-                </div>
-                <p className="text-slate-300 text-[11px]">
-                  Обновляйте список привычным свайпом сверху вниз на телефоне. А на экранах ПК сайт теперь разворачивается в удобный дашборд на 3 колонки.
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <div className="font-bold text-sky-400 flex items-center gap-1.5">
+            <div className="p-4 space-y-3.5 text-xs leading-relaxed">
+              {/* Блок 1: Переезд на новый домен */}
+              <div className="p-3.5 rounded-xl bg-slate-950/90 border border-emerald-500/30 space-y-1.5">
+                <div className="font-bold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm">
                   <span>🚀</span>
-                  <span>Работает без ВПН на любом интернете</span>
+                  <span>Переезд на новый адрес (работает без ВПН!)</span>
                 </div>
-                <p className="text-slate-300 text-[11px]">
-                  Полный переезд на прямой канал связи — мгновенная загрузка на МТС и всех мобильных операторах.
+                <p className="text-slate-300 text-[11px] leading-snug">
+                  Из-за блокировок провайдерами старого хостинга наш радар переехал на новый постоянный адрес:
                 </p>
+                <div className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 font-mono text-[11px] text-emerald-300 select-all break-all">
+                  https://platna.github.io/benzin-radar/
+                </div>
+                <p className="text-slate-400 text-[11px] leading-snug">
+                  Новая ссылка открывается мгновенно на МТС и любом мобильном интернете без ВПН. Сохраните её в закладки или добавьте на главный экран телефона!
+                </p>
+              </div>
+
+              {/* Блок 2: Поиск по местоположению */}
+              <div className="p-3.5 rounded-xl bg-slate-950/90 border border-blue-500/30 space-y-1.5">
+                <div className="font-bold text-blue-400 flex items-center gap-1.5 text-xs sm:text-sm">
+                  <span>📍</span>
+                  <span>Поиск заправок по вашему местоположению</span>
+                </div>
+                <p className="text-slate-300 text-[11px] leading-snug">
+                  Нажмите кнопку <b>«Рядом со мной»</b> над списком станций — приложение запомнит выбор и будет автоматически:
+                </p>
+                <ul className="space-y-1 text-slate-300 text-[11px] pl-1">
+                  <li>• Само выбирать ваш район (Нагорная часть или Ленинский).</li>
+                  <li>• Показывать точное расстояние в километрах до каждой АЗС.</li>
+                  <li>• Поднимать на самый верх ближайшие к вам заправки, где прямо сейчас есть <b>АИ-95 без очередей</b>!</li>
+                </ul>
               </div>
             </div>
 
@@ -751,7 +744,7 @@ export default function App() {
                 onClick={handleCloseChangelog}
                 className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] text-white font-bold text-xs shadow-lg shadow-emerald-950/60 transition-all cursor-pointer"
               >
-                Круто, поехали! 🚀
+                Отлично, понятно! 🚀
               </button>
             </div>
           </div>
