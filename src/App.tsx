@@ -13,7 +13,7 @@ import { Tabs } from './components/Tabs';
 import { DeficitSummary } from './components/DeficitSummary';
 import { StationCard } from './components/StationCard';
 import { InfoModal } from './components/InfoModal';
-import { AlertCircle, RefreshCw, Layers, CheckCircle2, X, Navigation } from 'lucide-react';
+import { AlertCircle, RefreshCw, Layers, CheckCircle2, X, Navigation, Sparkles } from 'lucide-react';
 
 interface ToastNotification {
   id: number;
@@ -29,6 +29,10 @@ interface UserCoords {
 }
 
 const PULL_THRESHOLD = 70;
+
+// ВЕРСИЯ ОБНОВЛЕНИЯ (поменяй на '2.2' в будущем, чтобы снова показать окно всем 1 раз)
+const CHANGELOG_VERSION = '2.1';
+const CHANGELOG_STORAGE_KEY = 'benzin_seen_changelog_version';
 
 // Формула Гаверсинуса для точного расчета расстояния в километрах
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -73,6 +77,22 @@ export default function App() {
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
+  // Состояние окна «Что нового» (показывается только 1 раз для текущей версии)
+  const [isChangelogOpen, setIsChangelogOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(CHANGELOG_STORAGE_KEY) !== CHANGELOG_VERSION;
+    } catch {
+      return false;
+    }
+  });
+
+  const handleCloseChangelog = () => {
+    setIsChangelogOpen(false);
+    try {
+      localStorage.setItem(CHANGELOG_STORAGE_KEY, CHANGELOG_VERSION);
+    } catch {}
+  };
+
   // Умная гибридная геолокация с памятью
   const [userCoords, setUserCoords] = useState<UserCoords | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
@@ -91,7 +111,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Функция запроса GPS-координат и авто-определения района
   const requestGeolocation = useCallback((silent = false) => {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       if (!silent) {
@@ -118,10 +137,8 @@ export default function App() {
           localStorage.setItem('benzin_geo_enabled', 'true');
         } catch {}
 
-        // Авто-выбор района (только один раз при старте, чтобы не мешать ручному переключению)
         if (!hasAutoSwitchedDistrictRef.current) {
           hasAutoSwitchedDistrictRef.current = true;
-          // Центр Ленинского (~56.28, 43.92) vs Центр Нагорной (~56.29, 44.03)
           const distToLeninsky = getDistanceKm(lat, lon, 56.28, 43.92);
           const distToNagornaya = getDistanceKm(lat, lon, 56.29, 44.03);
 
@@ -161,7 +178,6 @@ export default function App() {
     );
   }, []);
 
-  // Переключатель кнопки «Рядом со мной»
   const toggleGeolocation = () => {
     if (userCoords) {
       setUserCoords(null);
@@ -180,7 +196,6 @@ export default function App() {
     }
   };
 
-  // Авто-включение геолокации при входе, если пользователь ранее уже включал её
   useEffect(() => {
     try {
       if (localStorage.getItem('benzin_geo_enabled') === 'true') {
@@ -208,6 +223,7 @@ export default function App() {
     const currentMsk = getNowMsk();
 
     try {
+      // Напрямую запрашиваем наш Google-скрипт (работает в РФ без ВПН на любом хостинге!)
       const res = await fetch(`${GOOGLE_SCRIPT_API_URL}?_t=${Date.now()}`);
       if (res.ok) {
         const json = await res.json();
@@ -342,7 +358,6 @@ export default function App() {
       return Boolean(a1 && a2 && (a1.includes(a2) || a2.includes(a1)));
     });
 
-    // Считаем расстояние до заправки, если включен GPS
     const distance_km = userCoords
       ? getDistanceKm(userCoords.lat, userCoords.lon, canon.lat, canon.lon)
       : undefined;
@@ -437,7 +452,6 @@ export default function App() {
 
       return true;
     }).sort((a, b) => {
-      // 1-й слой: Сначала с бензином без очереди (0), затем с очередью (1), внизу без 95-го (2)
       const aFuel = check95Fuel(a);
       const bFuel = check95Fuel(b);
       const aScore = aFuel.state === 'none' ? 2 : isQueueStation(a) ? 1 : 0;
@@ -447,7 +461,6 @@ export default function App() {
         return aScore - bScore;
       }
 
-      // 2-й слой: Внутри каждой группы сортируем по расстоянию от водителя (если включен GPS)
       if (typeof a.distance_km === 'number' && typeof b.distance_km === 'number') {
         return a.distance_km - b.distance_km;
       }
@@ -574,7 +587,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Сетка АЗС: 1 колонка на мобилках, 2 на планшетах, 3 на мониторах ПК */}
+        {/* Сетка АЗС */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5 pb-10" data-testid="station-list">
           {displayedStations.length > 0 ? (
             displayedStations.map((station) => (
@@ -654,12 +667,112 @@ export default function App() {
         </aside>
       )}
 
+      {/* Модальное окно «Что нового» (показывается 1 раз при обновлении версии) */}
+      {isChangelogOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseChangelog();
+          }}
+        >
+          <div className="w-full max-w-md bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-2xl text-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-800 bg-slate-900/95">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-white">Что нового в Радаре</h2>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      v{CHANGELOG_VERSION}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Большое обновление точности и удобства</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseChangelog}
+                aria-label="Закрыть"
+                className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3 text-xs leading-relaxed">
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span>🎯</span>
+                  <span>Живые отметки водителей без задержек</span>
+                </div>
+                <p className="text-slate-300 text-[11px]">
+                  Радар теперь напрямую считывает свежие клики очевидцев («На месте») минута-в-минуту и точно отделяет обычный <b>АИ-95</b> от премиального <b>95+ (Экто / G-Drive)</b>.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                <div className="font-bold text-blue-400 flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span>Умная кнопка «Рядом со мной» (GPS)</span>
+                </div>
+                <p className="text-slate-300 text-[11px]">
+                  Нажмите один раз — приложение само определит ваш район, покажет расстояние до каждой АЗС в километрах и поднимет наверх ближайшие заправки с бензином!
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                  <span>📲</span>
+                  <span>Жест «Потяни вниз» и версия для ПК</span>
+                </div>
+                <p className="text-slate-300 text-[11px]">
+                  Обновляйте список привычным свайпом сверху вниз на телефоне. А на экранах ПК сайт теперь разворачивается в удобный дашборд на 3 колонки.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                <div className="font-bold text-sky-400 flex items-center gap-1.5">
+                  <span>🚀</span>
+                  <span>Работает без ВПН на любом интернете</span>
+                </div>
+                <p className="text-slate-300 text-[11px]">
+                  Полный переезд на прямой канал связи — мгновенная загрузка на МТС и всех мобильных операторах.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-4 py-3 border-t border-slate-800 bg-slate-900/95">
+              <button
+                type="button"
+                onClick={handleCloseChangelog}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] text-white font-bold text-xs shadow-lg shadow-emerald-950/60 transition-all cursor-pointer"
+              >
+                Круто, поехали! 🚀
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <InfoModal isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />
 
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-[11px] text-slate-400">
+      <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 text-center text-[11px] text-slate-400 space-y-1.5">
         <p className="max-w-md mx-auto">
           Бензин Радар НН · Оперативный мониторинг наличия АИ-95, очередей и лимитов на АЗС Нижнего Новгорода
         </p>
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsChangelogOpen(true)}
+            className="text-emerald-400/90 hover:text-emerald-300 underline underline-offset-2 cursor-pointer text-[11px]"
+          >
+            Что нового в v{CHANGELOG_VERSION}
+          </button>
+        </div>
       </footer>
     </div>
   );
